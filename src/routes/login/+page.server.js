@@ -6,63 +6,66 @@ import crypto from 'crypto';
 export const actions = {
     default: async ({ request, cookies }) => {
         const data = await request.formData();
-        const email = data.get('email');
-        const password = data.get('password');
         const action = data.get('action');
-
-        const trainers = await getTrainersCollection();
-
-        // TEST LOGIN LOGIC (Bypass)
-        if (!email || action === 'test-login') {
-            let testTrainer = await trainers.findOne({ email: 'test@focusfighter.de' });
-            
-            if (!testTrainer) {
-                const hashedPassword = await bcrypt.hash('test1234', 10);
-                testTrainer = {
-                    _id: 'test-trainer-id',
-                    email: 'test@focusfighter.de',
-                    password: hashedPassword,
-                    name: 'Max'
-                };
-                await trainers.insertOne(testTrainer);
-            }
-            
-            return await createSession(testTrainer._id, cookies);
-        }
+        const email = data.get('email')?.toString().trim().toLowerCase();
+        const password = data.get('password')?.toString();
 
         if (action === 'register') {
-            const existingTrainer = await trainers.findOne({ email });
-            if (existingTrainer) {
-                return fail(400, { email, error: 'Trainer already exists' });
+            const name = data.get('name')?.toString().trim();
+            const confirmPassword = data.get('confirmPassword')?.toString();
+
+            if (!name || !email || !password || !confirmPassword) {
+                return fail(400, { error: 'missing_fields', email, name, mode: 'register' });
             }
 
-            const hashedPassword = await bcrypt.hash(password, 10);
+            if (password.length < 8) {
+                return fail(400, { error: 'password_too_short', email, name, mode: 'register' });
+            }
+
+            if (password !== confirmPassword) {
+                return fail(400, { error: 'passwords_mismatch', email, name, mode: 'register' });
+            }
+
+            const trainers = await getTrainersCollection();
+            const existing = await trainers.findOne({ email });
+            if (existing) {
+                return fail(400, { error: 'email_taken', email, name, mode: 'register' });
+            }
+
+            const hashedPassword = await bcrypt.hash(password, 12);
             const newTrainer = {
                 _id: crypto.randomUUID(),
                 email,
                 password: hashedPassword,
-                name: email.split('@')[0]
+                name,
+                createdAt: new Date()
             };
 
             await trainers.insertOne(newTrainer);
-            
-            // Create session after registration
             return await createSession(newTrainer._id, cookies);
         }
 
         if (action === 'login') {
+            if (!email || !password) {
+                return fail(400, { error: 'missing_fields', email, mode: 'login' });
+            }
+
+            const trainers = await getTrainersCollection();
             const trainer = await trainers.findOne({ email });
+
             if (!trainer) {
-                return fail(400, { email, error: 'Invalid credentials' });
+                return fail(400, { error: 'invalid_credentials', email, mode: 'login' });
             }
 
             const isValid = await bcrypt.compare(password, trainer.password);
             if (!isValid) {
-                return fail(400, { email, error: 'Invalid credentials' });
+                return fail(400, { error: 'invalid_credentials', email, mode: 'login' });
             }
 
             return await createSession(trainer._id, cookies);
         }
+
+        return fail(400, { error: 'missing_fields' });
     }
 };
 
@@ -81,7 +84,7 @@ async function createSession(trainerId, cookies) {
         httpOnly: true,
         sameSite: 'strict',
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 60 * 24 * 7 // 1 week
+        maxAge: 60 * 60 * 24 * 7
     });
 
     throw redirect(303, '/dashboard');
