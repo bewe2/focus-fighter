@@ -8,7 +8,7 @@
 	let isWorkoutMode = $derived($page.url.pathname === '/workout');
 
 	const t = {
-		de: { dashboard: 'Dashboard', workouts: 'Workouts', history: 'Historie', settings: 'Settings' },
+		de: { dashboard: 'Dashboard', workouts: 'Workouts', history: 'Historie', settings: 'Einstellungen' },
 		en: { dashboard: 'Dashboard', workouts: 'Workouts', history: 'History', settings: 'Settings' }
 	};
 

@@ -1,18 +1,53 @@
 <script>
 	import { fade, fly } from 'svelte/transition';
 	import { History, Sword, Zap, User, Target, Calendar, Clock } from 'lucide-svelte';
+	import { settings } from '$lib/settingsStore';
 
 	let { data } = $props();
 
-	const workoutConfig = {
-		sparring: { name: 'Sparring', icon: Sword, color: '#e74c3c' },
-		hiit: { name: 'HIIT', icon: Zap, color: '#f1c40f' },
-		shadowboxing: { name: 'Schattenboxen', icon: User, color: '#3498db' },
-		bag: { name: 'Sandsack', icon: Target, color: '#2ecc71' }
+	const t = {
+		de: {
+			title: 'Trainings-Journal',
+			subtitle: 'Alle vergangenen Einheiten und Notizen',
+			empty: 'Noch keine Trainingseinheiten absolviert.',
+			rounds: 'Runden',
+			work: 'Arbeitszeit',
+			seconds: 's',
+			workoutTypes: {
+				sparring: 'Sparring',
+				hiit: 'HIIT',
+				shadowboxing: 'Schattenboxen',
+				bag: 'Sandsack'
+			}
+		},
+		en: {
+			title: 'Workout Journal',
+			subtitle: 'All past sessions and notes',
+			empty: 'No training sessions completed yet.',
+			rounds: 'Rounds',
+			work: 'Work time',
+			seconds: 's',
+			workoutTypes: {
+				sparring: 'Sparring',
+				hiit: 'HIIT',
+				shadowboxing: 'Shadow Boxing',
+				bag: 'Heavy Bag'
+			}
+		}
 	};
 
+	let currentT = $derived(t[$settings.language]);
+
+	const workoutConfig = $derived({
+		sparring: { name: currentT.workoutTypes.sparring, icon: Sword, color: '#e74c3c' },
+		hiit: { name: currentT.workoutTypes.hiit, icon: Zap, color: '#f1c40f' },
+		shadowboxing: { name: currentT.workoutTypes.shadowboxing, icon: User, color: '#3498db' },
+		bag: { name: currentT.workoutTypes.bag, icon: Target, color: '#2ecc71' }
+	});
+
 	function formatDate(iso) {
-		return new Date(iso).toLocaleDateString('de-DE', {
+		const lang = $settings.language === 'de' ? 'de-DE' : 'en-US';
+		return new Date(iso).toLocaleDateString(lang, {
 			day: '2-digit',
 			month: '2-digit',
 			year: 'numeric'
@@ -20,7 +55,8 @@
 	}
 
 	function formatTime(iso) {
-		return new Date(iso).toLocaleTimeString('de-DE', {
+		const lang = $settings.language === 'de' ? 'de-DE' : 'en-US';
+		return new Date(iso).toLocaleTimeString(lang, {
 			hour: '2-digit',
 			minute: '2-digit'
 		});
@@ -43,14 +79,14 @@
 			<History size={32} />
 		</div>
 		<div>
-			<h1>Trainings-Journal</h1>
-			<p>Alle vergangenen Einheiten und Notizen</p>
+			<h1>{currentT.title}</h1>
+			<p>{currentT.subtitle}</p>
 		</div>
 	</header>
 
 	{#if data.history.length === 0}
 		<div class="empty-state" in:fade={{ delay: 200 }}>
-			<p>Noch keine Trainingseinheiten absolviert.</p>
+			<p>{currentT.empty}</p>
 		</div>
 	{:else}
 		<div class="timeline">
@@ -80,7 +116,7 @@
 									{/if}
 
 									<div class="meta">
-										{session.rounds} Runden • {session.workDuration || session.workTime}s Arbeit
+										{session.rounds} {currentT.rounds} • {session.workDuration || session.workTime}{currentT.seconds} {currentT.work}
 									</div>
 
 									{#if session.trainerNotes}
