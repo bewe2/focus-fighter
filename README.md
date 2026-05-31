@@ -57,14 +57,19 @@
 
 ### 3.2 Sketch
 
-- **Variantenüberblick:** Es wurden drei grundlegende Interface-Varianten skizziert:
-  - **Variante A:** Single-Page-App mit Modal-Dialogen für Setup und Timer
-  - **Variante B:** Mehrseitige Navigation mit dedizierter Timer-Vollbildseite und separatem Dashboard
-  - **Variante C:** Card-basiertes Layout ohne Navigation, alles auf einer scrollbaren Seite
-- **Skizzen:** _(Handskizzen auf Papier; nicht digitalisiert)_
-  - Variante A wirkte durch Modals auf kleinen Bildschirmen überladen
-  - Variante C bot keine klare Orientierung bei mehreren Funktionsbereichen
-  - Variante B ermöglichte die klarste Trennung von Timer-Kontext und Verwaltungs-Kontext
+**Skizzen:** [docs/sketches.pdf](docs/sketches.pdf)
+
+Es wurden vier Lösungsansätze skizziert und bewertet:
+
+| Variante | Kernidee | Bewertung |
+|---|---|---|
+| **Quick Start** | Workout-Tabs (Fitness / Sparring / Sandsack) + Runden-Slider (3, 6, 9, 12) direkt auf dem Startscreen | ✅ Spart Zeit, eigene Presets wären cool — zu wenig Konfiguration |
+| **Minimalistisch** | Nur grosser Ring-Timer (04:30) + Start-Button, keine Navigation | ✅ Erleichtert Fokus, weniger ablenkend — fehlende Dokumentation/History |
+| **Session-Steuerung** | Timer mit Job-Access-Liste links + Gestensteuerung (Faust-Geste zum Pausieren) | ✅ Gute Idee, behebt das Handschuh-Problem — Geste schwer erkennbar |
+| **Dashboard + Speech UI** | Vorherige Sessions als Liste + Sprachsteuerung über Mikrofon | ✅ Dokumentation und Sprachbefehle ideal für Handschuh-Nutzung |
+
+**Entscheidungsprozess (Seite 2 der Skizzen):**
+Die finale Lösung kombiniert Quick Start und Gestensteuerung: Workout-Liste → 5-Sekunden-Countdown → Vollbild-Timer mit grünem Hintergrund (signalisiert Action), überall antippbar zum Pausieren. Erhöht die Usability mit Handschuhen, spart Zeit mit dem Quick-Start-Menü.
 
 ### 3.3 Decide
 
