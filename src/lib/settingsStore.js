@@ -4,7 +4,12 @@ import { browser } from '$app/environment';
 // Default values
 const defaultSettings = {
 	theme: 'dark',
-	language: 'de'
+	language: 'de',
+	weeklyGoal: 5,
+	voiceControl: false,
+	voiceStopCommand: '',
+	voiceGoCommand: '',
+	customWorkouts: []
 };
 
 // Initialize from localStorage if available
