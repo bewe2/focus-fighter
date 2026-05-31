@@ -3,6 +3,8 @@
 	import { enhance } from '$app/forms';
 	import Timer from '$lib/components/Timer.svelte';
 	import { Save, LayoutDashboard } from 'lucide-svelte';
+	import { settings } from '$lib/settingsStore';
+	import { fade } from 'svelte/transition';
 
 	let workoutConfig = $state({});
 	let workoutComplete = $state(false);
@@ -22,13 +24,40 @@
 	});
 
 	const workoutNames = {
-		bag: 'Sandsack',
-		shadowboxing: 'Schattenboxen',
-		hiit: 'HIIT',
-		sparring: 'Sparring'
+		de: { bag: 'Sandsack', shadowboxing: 'Schattenboxen', hiit: 'HIIT', sparring: 'Sparring' },
+		en: { bag: 'Heavy Bag', shadowboxing: 'Shadow Boxing', hiit: 'HIIT', sparring: 'Sparring' }
 	};
 
-	let workoutName = $derived(workoutNames[workoutConfig.type] || 'Training');
+	const t = {
+		de: {
+			title: 'Einheit beendet! 🎉',
+			subtitle: 'Starke Leistung! Halte hier deine Notizen für das Journal fest.',
+			notesLabel: 'Trainer Notizen (Journal)',
+			notesPlaceholder: 'Wie war die Form? Was muss verbessert werden?',
+			save: 'Journal speichern',
+			saving: 'Speichert...',
+			skip: 'Ohne Notizen beenden',
+			rounds: 'Runden',
+			workout: 'Training',
+			error: 'Fehler beim Speichern'
+		},
+		en: {
+			title: 'Workout Complete! 🎉',
+			subtitle: 'Great job! Record your notes for the journal here.',
+			notesLabel: 'Trainer Notes (Journal)',
+			notesPlaceholder: 'How was the form? What needs improvement?',
+			save: 'Save Journal',
+			saving: 'Saving...',
+			skip: 'Finish without notes',
+			rounds: 'Rounds',
+			workout: 'Workout',
+			error: 'Error saving session'
+		}
+	};
+
+	let currentT = $derived(t[$settings.language]);
+	let currentWorkoutNames = $derived(workoutNames[$settings.language]);
+	let workoutName = $derived(currentWorkoutNames[workoutConfig.type] || workoutConfig.name || currentT.workout);
 	let errorMessage = $state('');
 
 	function handleWorkoutComplete() {
@@ -55,17 +84,15 @@
 	<div class="completion-screen">
 		<div class="completion-content">
 			<div class="completion-icon">✓</div>
-			<h1>Einheit beendet! 🎉</h1>
-			<p class="completion-text">
-				Starke Leistung! Halte hier deine Notizen für das Journal fest.
-			</p>
+			<h1>{currentT.title}</h1>
+			<p class="completion-text">{currentT.subtitle}</p>
 
 			<div class="stats-compact">
 				<span class="badge">{workoutName}</span>
 				{#if workoutConfig.fighter1 && workoutConfig.fighter2}
 					<span class="badge">{workoutConfig.fighter1} vs {workoutConfig.fighter2}</span>
 				{/if}
-				<span class="badge">{workoutConfig.rounds} Runden</span>
+				<span class="badge">{workoutConfig.rounds} {currentT.rounds}</span>
 			</div>
 
 			<form
@@ -80,7 +107,7 @@
 							goto(result.location);
 						} else if (result.type === 'failure') {
 							isSaving = false;
-							errorMessage = result.data?.message || 'Fehler beim Speichern';
+							errorMessage = result.data?.message || currentT.error;
 						} else {
 							isSaving = false;
 						}
@@ -101,11 +128,11 @@
 				<input type="hidden" name="fighter2" value={workoutConfig.fighter2 || ''} />
 
 				<div class="input-group">
-					<label for="notes">Trainer Notizen (Journal)</label>
+					<label for="notes">{currentT.notesLabel}</label>
 					<textarea
 						id="notes"
 						name="trainerNotes"
-						placeholder="Wie war die Form? Was muss verbessert werden?"
+						placeholder={currentT.notesPlaceholder}
 						rows="4"
 					></textarea>
 				</div>
@@ -113,13 +140,13 @@
 				<div class="action-grid">
 					<button type="submit" class="btn-save" disabled={isSaving}>
 						{#if isSaving}
-							Speichert...
+							{currentT.saving}
 						{:else}
-							<Save size={20} /> Journal speichern
+							<Save size={20} /> {currentT.save}
 						{/if}
 					</button>
 					<button type="button" class="btn-skip" onclick={goToDashboard}>
-						<LayoutDashboard size={20} /> Ohne Notizen beenden
+						<LayoutDashboard size={20} /> {currentT.skip}
 					</button>
 				</div>
 			</form>

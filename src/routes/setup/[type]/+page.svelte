@@ -1,21 +1,92 @@
 <script>
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { ArrowLeft } from 'lucide-svelte';
+	import { settings } from '$lib/settingsStore';
 
 	const workoutTypes = {
-		sparring: { name: 'Sparring', defaultRounds: 10, defaultWork: 180, defaultRest: 60 },
-		shadowboxing: { name: 'Schattenboxen', defaultRounds: 3, defaultWork: 120, defaultRest: 30 },
-		hiit: { name: 'HIIT', defaultRounds: 8, defaultWork: 45, defaultRest: 15 },
-		bag: { name: 'Sandsack', defaultRounds: 6, defaultWork: 180, defaultRest: 60 }
+		de: {
+			sparring: { name: 'Sparring', defaultRounds: 10, defaultWork: 180, defaultRest: 60 },
+			shadowboxing: { name: 'Schattenboxen', defaultRounds: 3, defaultWork: 120, defaultRest: 30 },
+			hiit: { name: 'HIIT', defaultRounds: 8, defaultWork: 45, defaultRest: 15 },
+			bag: { name: 'Sandsack', defaultRounds: 6, defaultWork: 180, defaultRest: 60 }
+		},
+		en: {
+			sparring: { name: 'Sparring', defaultRounds: 10, defaultWork: 180, defaultRest: 60 },
+			shadowboxing: { name: 'Shadow Boxing', defaultRounds: 3, defaultWork: 120, defaultRest: 30 },
+			hiit: { name: 'HIIT', defaultRounds: 8, defaultWork: 45, defaultRest: 15 },
+			bag: { name: 'Heavy Bag', defaultRounds: 6, defaultWork: 180, defaultRest: 60 }
+		}
+	};
+
+	const t = {
+		de: {
+			subtitle: 'Konfiguriere deine Einheit',
+			matchup: 'Kämpfer Matchup',
+			fighter1: 'Kämpfer 1',
+			fighter2: 'Kämpfer 2',
+			rounds: 'Runden',
+			work: 'Arbeitszeit',
+			rest: 'Pausenzeit',
+			total: 'Gesamtdauer (ca.)',
+			start: 'Training Starten',
+			back: 'Zurück',
+			cancel: 'Abbrechen'
+		},
+		en: {
+			subtitle: 'Configure your session',
+			matchup: 'Fighter Matchup',
+			fighter1: 'Fighter 1',
+			fighter2: 'Fighter 2',
+			rounds: 'Rounds',
+			work: 'Work Time',
+			rest: 'Rest Time',
+			total: 'Total Duration (approx.)',
+			start: 'Start Workout',
+			back: 'Back',
+			cancel: 'Cancel'
+		}
 	};
 
 	let workoutType = $page.params.type;
-	let config = workoutTypes[workoutType] || workoutTypes.bag;
+	let currentWorkoutTypes = $derived(workoutTypes[$settings.language]);
+	let currentT = $derived(t[$settings.language]);
 
-	let rounds = $state(config.defaultRounds);
-	let workDuration = $state(config.defaultWork);
-	let restDuration = $state(config.defaultRest);
+	// Custom workout support
+	let customBase = $state(null);
+	let configName = $derived(
+		workoutType === 'custom' && customBase
+			? customBase.name
+			: (currentWorkoutTypes[workoutType]?.name ?? currentWorkoutTypes.bag.name)
+	);
+
+	let rounds = $state(0);
+	let workDuration = $state(0);
+	let restDuration = $state(0);
+
+	$effect.pre(() => {
+		if (workoutType === 'custom') return; // handled by onMount
+		const baseConfig = workoutTypes.de[workoutType] || workoutTypes.de.bag;
+		rounds = baseConfig.defaultRounds;
+		workDuration = baseConfig.defaultWork;
+		restDuration = baseConfig.defaultRest;
+	});
+
+	onMount(() => {
+		if (workoutType === 'custom') {
+			const stored = sessionStorage.getItem('customWorkoutBase');
+			if (stored) {
+				const c = JSON.parse(stored);
+				customBase = c;
+				rounds = c.rounds ?? 5;
+				workDuration = c.workDuration ?? 120;
+				restDuration = c.restDuration ?? 30;
+			} else {
+				goto('/workouts');
+			}
+		}
+	});
 
 	// Fighter names for sparring
 	let fighter1 = $state('');
@@ -30,6 +101,7 @@
 	function startWorkout() {
 		const workoutData = {
 			type: workoutType,
+			name: workoutType === 'custom' ? configName : undefined,
 			rounds,
 			workDuration,
 			restDuration,
@@ -47,15 +119,15 @@
 </script>
 
 <div class="setup-container">
-	<button class="btn-nav btn-back" onclick={goBack} title="Zurück">
+	<button class="btn-nav btn-back" onclick={goBack} title={currentT.back}>
 		<ArrowLeft size={24} />
 	</button>
-	<button class="btn-nav btn-exit" onclick={() => goto('/')} title="Abbrechen">✕</button>
+	<button class="btn-nav btn-exit" onclick={() => goto('/')} title={currentT.cancel}>✕</button>
 
 	<div class="setup-content">
 		<header class="setup-header">
-			<h1>{config.name}</h1>
-			<p>Konfiguriere deine Einheit</p>
+			<h1>{configName}</h1>
+			<p>{currentT.subtitle}</p>
 		</header>
 
 		<form class="setup-form" onsubmit={(e) => {
@@ -64,19 +136,19 @@
 		}}>
 			{#if workoutType === 'sparring'}
 				<div class="config-block fighter-inputs">
-					<label>Kämpfer Matchup</label>
+					<label>{currentT.matchup}</label>
 					<div class="fighter-grid">
 						<input
 							type="text"
 							bind:value={fighter1}
-							placeholder="Kämpfer 1"
+							placeholder={currentT.fighter1}
 							class="fighter-input"
 						/>
 						<span class="vs">VS</span>
 						<input
 							type="text"
 							bind:value={fighter2}
-							placeholder="Kämpfer 2"
+							placeholder={currentT.fighter2}
 							class="fighter-input"
 						/>
 					</div>
@@ -84,7 +156,7 @@
 			{/if}
 
 			<div class="config-block">
-				<label>Runden</label>
+				<label>{currentT.rounds}</label>
 				<div class="control-group">
 					<button
 						type="button"
@@ -105,7 +177,7 @@
 			</div>
 
 			<div class="config-block">
-				<label>Arbeitszeit</label>
+				<label>{currentT.work}</label>
 				<div class="control-group">
 					<button
 						type="button"
@@ -126,7 +198,7 @@
 			</div>
 
 			<div class="config-block">
-				<label>Pausenzeit</label>
+				<label>{currentT.rest}</label>
 				<div class="control-group">
 					<button
 						type="button"
@@ -147,14 +219,14 @@
 			</div>
 
 			<div class="setup-summary">
-				<div class="summary-label">Gesamtdauer (ca.)</div>
+				<div class="summary-label">{currentT.total}</div>
 				<div class="summary-time">
 					{formatTime(rounds * (workDuration + restDuration))}
 				</div>
 			</div>
 
 			<button type="submit" class="btn-start">
-				Training Starten
+				{currentT.start}
 			</button>
 		</form>
 	</div>
