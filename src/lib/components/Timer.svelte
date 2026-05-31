@@ -1,9 +1,9 @@
 <script>
 	import { goto } from '$app/navigation';
-	/**
-	 * Timer-Komponente für FocusFighter
-	 * Screens: Prep → Work → Rest → Loop | Paused
-	 */
+	import { onMount } from 'svelte';
+	import { Mic } from 'lucide-svelte';
+	import { settings } from '$lib/settingsStore';
+
 	let {
 		rounds = 3,
 		workDuration = 180,
@@ -15,603 +15,596 @@
 		onStateChange = () => {}
 	} = $props();
 
-	let currentRound = $state(0);
-	let timeLeft = $state(10);
-	let isRunning = $state(false);
-	let isPaused = $state(false);
-	let state = $state('prep'); // 'prep' | 'work' | 'rest' | 'paused'
-	let prevState = $state('prep');
-	let intervalId = $state(null);
-
-	const stateConfig = {
-		prep: {
-			label: 'Vorbereitung',
-			bgColor: '#0a0e27',
-			duration: 10,
-			textColor: '#ecf0f1'
+	const t = {
+		de: {
+			prep: 'Vorbereitung',
+			work: 'Arbeit',
+			rest: 'Pause',
+			paused: 'Pausiert',
+			round: 'Runde',
+			start: 'Start',
+			skip: 'Sofort starten',
+			skipRound: 'Runde skippen',
+			skipRest: 'Pause skippen',
+			resume: 'Fortsetzen',
+			tapToPause: 'Tippe um zu pausieren',
+			remaining: 'verbleibend',
+			lastRest: 'Letzte Pause!',
+			nextRound: 'Nächste Runde',
+			cancel: 'Abbrechen'
 		},
-		work: {
-			label: 'Arbeit',
-			bgColor: '#2ecc71',
-			duration: workDuration,
-			textColor: '#050810'
-		},
-		rest: {
-			label: 'Pause',
-			bgColor: '#f39c12',
-			duration: restDuration,
-			textColor: '#050810'
-		},
-		paused: {
-			label: 'Pausiert',
-			bgColor: '#e74c3c',
-			duration: 0,
-			textColor: '#ffffff'
+		en: {
+			prep: 'Preparation',
+			work: 'Work',
+			rest: 'Rest',
+			paused: 'Paused',
+			round: 'Round',
+			start: 'Start',
+			skip: 'Start now',
+			skipRound: 'Skip Round',
+			skipRest: 'Skip Rest',
+			resume: 'Resume',
+			tapToPause: 'Tap to pause',
+			remaining: 'remaining',
+			lastRest: 'Last Rest!',
+			nextRound: 'Next Round',
+			cancel: 'Cancel'
 		}
 	};
 
+	let currentT = $derived(t[$settings.language]);
+
+	let currentRound = $state(0);
+	let timeLeft    = $state(10);
+	let isRunning   = $state(false);
+	let isPaused    = $state(false);
+	let state       = $state('prep');
+	let prevState   = $state('prep');
+	let intervalId  = $state(null);
+
+	const stateConfig = $derived({
+		prep:   { label: currentT.prep,   color: '#818cf8', duration: 10          },
+		work:   { label: currentT.work,   color: '#2ecc71', duration: workDuration },
+		rest:   { label: currentT.rest,   color: '#f59e0b', duration: restDuration },
+		paused: { label: currentT.paused, color: '#6b7280', duration: 0            }
+	});
+
+	// ── Timer logic ──────────────────────────────────────────────────
 	function startTimer() {
 		isRunning = true;
-		isPaused = false;
-		if (state === 'paused') {
-			state = prevState;
-		}
+		isPaused  = false;
+		if (state === 'paused') state = prevState;
 		intervalId = setInterval(() => {
 			timeLeft -= 1;
-			if (timeLeft <= 0) {
-				handleStateTransition();
-			}
+			if (timeLeft <= 0) handleStateTransition();
 		}, 1000);
 	}
 
 	function handleStateTransition() {
 		if (state === 'prep') {
-			state = 'work';
-			timeLeft = workDuration;
+			state = 'work'; timeLeft = workDuration;
 		} else if (state === 'work') {
-			state = 'rest';
-			timeLeft = restDuration;
+			state = 'rest'; timeLeft = restDuration;
 		} else if (state === 'rest') {
 			currentRound += 1;
-			if (currentRound >= rounds) {
-				stopTimer();
-				onComplete();
-			} else {
-				state = 'work';
-				timeLeft = workDuration;
-			}
+			if (currentRound >= rounds) { stopTimer(); onComplete(); }
+			else { state = 'work'; timeLeft = workDuration; }
 		}
 		onStateChange({ state, currentRound, timeLeft });
 	}
 
 	function pauseWorkout() {
-		isRunning = false;
-		isPaused = true;
-		prevState = state;
-		state = 'paused';
+		isRunning = false; isPaused = true;
+		prevState = state; state = 'paused';
 		if (intervalId) clearInterval(intervalId);
 	}
 
-	function resumeWorkout() {
-		startTimer();
-	}
+	function resumeWorkout() { startTimer(); }
 
 	function stopTimer() {
-		isRunning = false;
-		isPaused = false;
+		isRunning = false; isPaused = false;
 		if (intervalId) clearInterval(intervalId);
-	}
-
-	function resetTimer() {
-		stopTimer();
-		currentRound = 0;
-		timeLeft = 10;
-		state = 'prep';
-		isPaused = false;
 	}
 
 	function skipPrep() {
-		state = 'work';
-		timeLeft = workDuration;
-		if (!isRunning) {
-			startTimer();
+		state = 'work'; timeLeft = workDuration;
+		if (!isRunning) startTimer();
+	}
+
+	function skipRound() {
+		if (intervalId) clearInterval(intervalId);
+		state = 'rest'; timeLeft = restDuration;
+		intervalId = setInterval(() => { timeLeft -= 1; if (timeLeft <= 0) handleStateTransition(); }, 1000);
+		onStateChange({ state, currentRound, timeLeft });
+	}
+
+	function skipRest() {
+		if (intervalId) clearInterval(intervalId);
+		currentRound += 1;
+		if (currentRound >= rounds) { stopTimer(); onComplete(); }
+		else {
+			state = 'work'; timeLeft = workDuration;
+			intervalId = setInterval(() => { timeLeft -= 1; if (timeLeft <= 0) handleStateTransition(); }, 1000);
+			onStateChange({ state, currentRound, timeLeft });
 		}
 	}
 
-	function exitWorkout() {
-		stopTimer();
-		goto('/workouts');
-	}
+	function exitWorkout() { stopTimer(); goto('/workouts'); }
 
 	function handleFullScreenTap() {
-		if (state === 'work' || state === 'rest') {
-			pauseWorkout();
-		}
+		if (state === 'work' || state === 'rest') pauseWorkout();
 	}
+
+	// ── Voice Control ─────────────────────────────────────────────────
+	let voiceRecognition = $state(null);
+	let voiceListening   = $state(false);
+
+	function initVoiceControl() {
+		if (!$settings.voiceControl || !$settings.voiceStopCommand) return;
+		const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+		if (!SR) return;
+		const r = new SR();
+		r.lang = $settings.language === 'de' ? 'de-DE' : 'en-US';
+		r.continuous = true; r.interimResults = false;
+		r.onstart  = () => { voiceListening = true; };
+		r.onend    = () => {
+			voiceListening = false;
+			if (voiceRecognition === r && (state === 'work' || state === 'rest' || state === 'paused'))
+				try { r.start(); } catch {}
+		};
+		r.onresult = (e) => {
+			const transcript = e.results[e.results.length - 1][0].transcript.toLowerCase().trim();
+			const stopCmd = ($settings.voiceStopCommand || '').toLowerCase();
+			const goCmd   = ($settings.voiceGoCommand   || '').toLowerCase();
+			if (stopCmd && transcript.includes(stopCmd) && (state === 'work' || state === 'rest')) pauseWorkout();
+			else if (goCmd && transcript.includes(goCmd) && state === 'paused') resumeWorkout();
+		};
+		r.onerror = () => { voiceListening = false; };
+		voiceRecognition = r;
+		try { r.start(); } catch {}
+	}
+
+	function destroyVoiceControl() {
+		if (voiceRecognition) { const r = voiceRecognition; voiceRecognition = null; try { r.abort(); } catch {} }
+		voiceListening = false;
+	}
+
+	onMount(() => {
+		startTimer();
+		initVoiceControl();
+	});
 
 	$effect(() => {
 		return () => {
 			if (intervalId) clearInterval(intervalId);
+			destroyVoiceControl();
 		};
 	});
 
+	// ── Helpers ───────────────────────────────────────────────────────
 	function formatTime(seconds) {
-		const mins = Math.floor(seconds / 60);
-		const secs = seconds % 60;
-		return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+		const m = Math.floor(seconds / 60);
+		const s = seconds % 60;
+		return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 	}
 
 	function getProgressPercent() {
-		const duration = stateConfig[state].duration;
-		if (duration === 0) return 0;
-		return ((duration - timeLeft) / duration) * 100;
+		const d = stateConfig[state].duration;
+		return d === 0 ? 0 : ((d - timeLeft) / d) * 100;
 	}
+
+	// circumference for r=96 → 2π×96 ≈ 603
+	const C = 603;
 </script>
 
-<div
-	class="timer-screen"
-	style="--bg-color: {stateConfig[state].bgColor}; --text-color: {stateConfig[state].textColor}"
->
-	<button class="btn-exit-global" onclick={exitWorkout} title="Abbrechen">✕</button>
+<div class="timer-screen">
 
-	<!-- PREP SCREEN: Dark bg + circular progress -->
-	{#if state === 'prep'}
-		<div class="prep-container">
-			<div class="round-badge">
-				Runde <span>{currentRound + 1}</span> / {rounds}
+	<!-- Skip button (top-left, only during work/rest) -->
+	{#if state === 'work'}
+		<button class="btn-skip-corner" onclick={(e) => { e.stopPropagation(); skipRound(); }}>
+			⏭ {currentT.skipRound}
+		</button>
+	{:else if state === 'rest'}
+		<button class="btn-skip-corner" onclick={(e) => { e.stopPropagation(); skipRest(); }}>
+			⏭ {currentT.skipRest}
+		</button>
+	{/if}
+
+	<!-- Top-right controls -->
+	<div class="top-right">
+		{#if voiceListening}
+			<div class="mic-dot" title="Sprachsteuerung aktiv"><Mic size={13} /></div>
+		{/if}
+		<button class="btn-exit" onclick={exitWorkout} title={currentT.cancel}>✕</button>
+	</div>
+
+	<!-- ── PAUSED ── -->
+	{#if state === 'paused'}
+		<div class="paused-view">
+			<span class="paused-label">{currentT.paused}</span>
+
+			<div class="ring-wrap ring-sm">
+				<svg viewBox="0 0 220 220" class="ring-svg">
+					<circle cx="110" cy="110" r="96" class="ring-track"/>
+					<circle cx="110" cy="110" r="96" class="ring-fill"
+						style="stroke: rgba(255,255,255,0.15); stroke-dasharray: {(C * getProgressPercent()) / 100} {C}"/>
+				</svg>
+				<div class="time-num time-dim">{formatTime(timeLeft)}</div>
 			</div>
 
-			<div class="state-title">Vorbereitung</div>
+			<div class="paused-sub">
+				{currentT.round} {currentRound + 1} / {rounds}
+				&nbsp;·&nbsp;
+				{formatTime(timeLeft)} {currentT.remaining}
+			</div>
 
-			<div class="circular-progress-wrapper">
-				<svg class="circular-progress" viewBox="0 0 200 200">
-					<circle cx="100" cy="100" r="90" class="progress-bg" />
-					<circle
-						cx="100"
-						cy="100"
-						r="90"
-						class="progress-fill"
-						style="stroke-dasharray: {(565 * getProgressPercent()) / 100} 565"
-					/>
+			<button class="btn-resume" onclick={resumeWorkout}>{currentT.resume}</button>
+		</div>
+
+	<!-- ── PREP ── -->
+	{:else if state === 'prep'}
+		{@const c = stateConfig.prep.color}
+		<div class="center-view">
+			<div class="round-line">
+				{currentT.round} <strong>{currentRound + 1}</strong> / {rounds}
+			</div>
+
+			<div class="ring-wrap">
+				<svg viewBox="0 0 220 220" class="ring-svg">
+					<circle cx="110" cy="110" r="96" class="ring-track"/>
+					<circle cx="110" cy="110" r="96" class="ring-fill"
+						style="stroke: {c}; filter: drop-shadow(0 0 10px {c}); stroke-dasharray: {(C * getProgressPercent()) / 100} {C}"/>
 				</svg>
-				<div class="time-in-circle">{String(timeLeft).padStart(2, '0')}</div>
+				<div class="time-num time-prep">{String(timeLeft).padStart(2, '0')}</div>
+			</div>
+
+			<div class="state-pill" style="color:{c}; border-color:{c}40; background:{c}18">
+				<span class="pip" style="background:{c}"></span>
+				{stateConfig.prep.label}
 			</div>
 
 			{#if !isRunning}
-				<button class="btn-large btn-green" onclick={startTimer}>Start</button>
+				<button class="btn-action" onclick={startTimer}>{currentT.start}</button>
 			{:else}
-				<button class="btn-large btn-skip" onclick={skipPrep}>Sofort starten</button>
+				<button class="btn-action btn-ghost" onclick={skipPrep}>{currentT.skip}</button>
 			{/if}
 		</div>
-	{/if}
 
-	<!-- WORK SCREEN: Green bg, full-screen tap area, tap anywhere text -->
-	{#if state === 'work'}
-		<div class="work-container" onclick={handleFullScreenTap}>
-			
-
-			<div class="workout-title-overlay">{workoutName}</div>
-			{#if fighter1 && fighter2}
-				<div class="fighter-matchup">{fighter1} vs {fighter2}</div>
-			{/if}
-
-			<div class="round-info-work">
-				Runde {currentRound + 1} / {rounds}
+	<!-- ── WORK / REST ── -->
+	{:else}
+		{@const c = stateConfig[state].color}
+		<div class="center-view fullscreen-tap" onclick={handleFullScreenTap}>
+			<div class="round-line">
+				{currentT.round} <strong>{currentRound + 1}</strong> / {rounds}
 			</div>
 
-			<div class="circular-progress-wrapper-huge">
-				<svg class="circular-progress" viewBox="0 0 200 200">
-					<circle cx="100" cy="100" r="92" class="progress-bg-dark" />
-					<circle
-						cx="100"
-						cy="100"
-						r="92"
-						class="progress-fill-dark"
-						style="stroke-dasharray: {(578 * getProgressPercent()) / 100} 578"
-					/>
+			<div class="ring-wrap">
+				<svg viewBox="0 0 220 220" class="ring-svg">
+					<circle cx="110" cy="110" r="96" class="ring-track"/>
+					<circle cx="110" cy="110" r="96" class="ring-fill"
+						style="stroke:{c}; filter:drop-shadow(0 0 12px {c}); stroke-dasharray:{(C * getProgressPercent()) / 100} {C}"/>
 				</svg>
-				<div class="time-display-huge">{formatTime(timeLeft)}</div>
+				<div class="time-num">{formatTime(timeLeft)}</div>
 			</div>
 
-			<div class="tap-hint">Tippe um zu pausieren</div>
-		</div>
-	{/if}
+			<div class="state-pill" style="color:{c}; border-color:{c}40; background:{c}18">
+				<span class="pip" style="background:{c}"></span>
+				{stateConfig[state].label}
+			</div>
 
-	<!-- REST SCREEN: Orange bg, shows next round -->
-	{#if state === 'rest'}
-		<div class="rest-container" onclick={handleFullScreenTap}>
-			
-
-			<div class="workout-title-overlay">{workoutName}</div>
-			{#if fighter1 && fighter2}
-				<div class="fighter-matchup">{fighter1} vs {fighter2}</div>
-			{/if}
-
-			<div class="round-info-rest">
-				{#if currentRound + 1 < rounds}
-					Nächste Runde {currentRound + 2} / {rounds}
-				{:else}
-					Letzte Pause!
+			<div class="meta-block">
+				<div class="workout-label">{workoutName}</div>
+				{#if fighter1 && fighter2}
+					<div class="matchup-label">
+						{fighter1} <span style="color:{c}; font-style:normal">vs</span> {fighter2}
+					</div>
+				{:else if state === 'rest'}
+					<div class="next-label">
+						{currentRound + 1 < rounds
+							? `${currentT.nextRound} ${currentRound + 2} / ${rounds}`
+							: currentT.lastRest}
+					</div>
 				{/if}
 			</div>
 
-			<div class="circular-progress-wrapper-huge">
-				<svg class="circular-progress" viewBox="0 0 200 200">
-					<circle cx="100" cy="100" r="92" class="progress-bg-dark" />
-					<circle
-						cx="100"
-						cy="100"
-						r="92"
-						class="progress-fill-dark"
-						style="stroke-dasharray: {(578 * getProgressPercent()) / 100} 578"
-					/>
-				</svg>
-				<div class="time-display-huge">{formatTime(timeLeft)}</div>
-			</div>
-
-			<div class="tap-hint">Tippe um zu pausieren</div>
-		</div>
-	{/if}
-
-	<!-- PAUSED SCREEN: Red bg, resume button -->
-	{#if state === 'paused'}
-		<div class="paused-container">
-			<div class="paused-title">Pausiert</div>
-
-			<div class="paused-info">
-				Runde {currentRound + 1} / {rounds}
-				<br />
-				{#if isPaused}
-					{formatTime(timeLeft)} verbleibend
-				{/if}
-			</div>
-
-			<button class="btn-resume" onclick={resumeWorkout}>Fortsetzen</button>
+			<p class="tap-hint">{currentT.tapToPause}</p>
 		</div>
 	{/if}
 </div>
 
 <style>
-	:root {
-		--primary-green: #2ecc71;
-		--rest-orange: #f39c12;
-		--warning-red: #e74c3c;
-		--bg-dark: #0a0e27;
-		--text-light: #ecf0f1;
-	}
-
+	/* ── Base ── */
 	.timer-screen {
 		width: 100%;
 		height: 100vh;
-		background-color: var(--bg-color);
-		color: var(--text-color);
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Inter', sans-serif;
+		background: #050810;
+		color: #ecf0f1;
+		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		transition: background-color 0.3s ease;
 		position: relative;
 		overflow: hidden;
 	}
 
-	/* ===== PREP SCREEN ===== */
-	.prep-container {
-		width: 100%;
-		height: 100%;
+	/* ── Corner controls ── */
+	.btn-skip-corner {
+		position: absolute;
+		top: 20px;
+		left: 20px;
+		z-index: 100;
+		background: rgba(255,255,255,0.07);
+		color: rgba(255,255,255,0.5);
+		border: 1px solid rgba(255,255,255,0.1);
+		border-radius: 20px;
+		padding: 8px 14px;
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.4px;
+		cursor: pointer;
+		transition: all 0.2s;
+		display: flex;
+		align-items: center;
+		gap: 5px;
+	}
+	.btn-skip-corner:hover  { background: rgba(255,255,255,0.13); color: #fff; }
+	.btn-skip-corner:active { transform: scale(0.95); }
+
+	.top-right {
+		position: absolute;
+		top: 20px;
+		right: 20px;
+		z-index: 100;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.btn-exit {
+		width: 40px;
+		height: 40px;
+		background: rgba(255,255,255,0.07);
+		border: 1px solid rgba(255,255,255,0.1);
+		color: rgba(255,255,255,0.5);
+		border-radius: 50%;
+		font-size: 16px;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.2s;
+	}
+	.btn-exit:hover { background: rgba(231,76,60,0.2); color: #e74c3c; border-color: rgba(231,76,60,0.3); }
+
+	.mic-dot {
+		width: 32px;
+		height: 32px;
+		background: rgba(46,204,113,0.12);
+		border: 1px solid rgba(46,204,113,0.3);
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #2ecc71;
+		animation: mic-blink 2s ease-in-out infinite;
+	}
+	@keyframes mic-blink { 0%,100%{opacity:1}50%{opacity:0.35} }
+
+	/* ── Layouts ── */
+	.center-view {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 40px;
-		padding: 40px 20px;
+		gap: 28px;
+		padding: 100px 24px 60px;
+		width: 100%;
+		height: 100%;
 	}
 
-	.round-badge {
-		font-size: 18px;
-		font-weight: 600;
-		opacity: 0.9;
-		letter-spacing: 1px;
+	.fullscreen-tap { cursor: pointer; user-select: none; }
+
+	.paused-view {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 30px;
+		padding: 20px;
+		width: 100%;
+		height: 100%;
 	}
 
-	.round-badge span {
-		font-size: 24px;
-		font-weight: 700;
-		color: var(--primary-green);
+	/* ── Round line ── */
+	.round-line {
+		font-size: 14px;
+		font-weight: 500;
+		color: rgba(255,255,255,0.3);
+		letter-spacing: 0.5px;
+	}
+	.round-line strong {
+		color: rgba(255,255,255,0.8);
+		font-size: 17px;
 	}
 
-	.state-title {
-		font-size: 32px;
-		font-weight: 700;
-		letter-spacing: 2px;
-	}
-
-	.circular-progress-wrapper,
-	.circular-progress-wrapper-huge {
+	/* ── Ring ── */
+	.ring-wrap {
 		position: relative;
+		width: 280px;
+		height: 280px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 	}
 
-	.circular-progress-wrapper {
-		width: 240px;
-		height: 240px;
+	.ring-sm {
+		width: 200px;
+		height: 200px;
 	}
 
-	.circular-progress-wrapper-huge {
-		width: 380px;
-		height: 380px;
-	}
-
-	.circular-progress {
+	.ring-svg {
 		position: absolute;
 		width: 100%;
 		height: 100%;
 		transform: rotate(-90deg);
 	}
 
-	.progress-bg {
+	.ring-track {
 		fill: none;
-		stroke: rgba(255, 255, 255, 0.2);
-		stroke-width: 8;
+		stroke: rgba(255,255,255,0.06);
+		stroke-width: 7;
 	}
 
-	.progress-fill {
+	.ring-fill {
 		fill: none;
-		stroke: var(--primary-green);
-		stroke-width: 8;
+		stroke-width: 7;
 		stroke-linecap: round;
-		transition: stroke-dasharray 0.1s linear;
+		transition: stroke-dasharray 0.25s linear;
 	}
 
-	.progress-bg-dark {
-		fill: none;
-		stroke: rgba(0, 0, 0, 0.1);
-		stroke-width: 10;
-	}
-
-	.progress-fill-dark {
-		fill: none;
-		stroke: rgba(0, 0, 0, 0.8);
-		stroke-width: 10;
-		stroke-linecap: round;
-		transition: stroke-dasharray 0.1s linear;
-	}
-
-	.time-in-circle {
-		font-size: 72px;
+	/* ── Time display ── */
+	.time-num {
+		font-size: 74px;
 		font-weight: 700;
-		font-family: 'Courier New', monospace;
-		text-align: center;
-	}
-
-	/* ===== WORK SCREEN ===== */
-	.work-container,
-	.rest-container {
-		width: 100%;
-		height: 100%;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		padding: 40px 20px;
-		cursor: pointer;
-		user-select: none;
-		position: relative;
-		gap: 30px;
-	}
-
-	.workout-title-overlay {
-		font-size: 42px;
-		font-weight: 900;
-		text-transform: uppercase;
-		letter-spacing: 2px;
-		color: rgba(0, 0, 0, 0.9);
+		letter-spacing: -3px;
+		color: #fff;
 		line-height: 1;
-		text-align: center;
+		font-variant-numeric: tabular-nums;
 	}
 
-	.fighter-matchup {
-		font-size: 24px;
-		font-weight: 700;
-		color: rgba(0, 0, 0, 0.6);
-		font-style: italic;
-		margin-top: -15px;
-	}
+	.time-prep { font-size: 90px; }
 
-	.round-info-work,
-	.round-info-rest {
-		font-size: 18px;
-		font-weight: 700;
-		letter-spacing: 1px;
-		color: rgba(0, 0, 0, 0.7);
-		margin-top: -10px;
-	}
-
-	@media (max-width: 600px) {
-		.workout-title-overlay {
-			font-size: 28px;
-		}
-	}
-
-	.time-display-huge {
-		font-size: 100px;
-		font-weight: 700;
-		font-family: 'Courier New', monospace;
-		line-height: 1;
+	.time-dim {
+		color: rgba(255,255,255,0.25);
+		font-size: 56px;
 		letter-spacing: -2px;
 	}
 
-	@media (max-width: 600px) {
-		.time-display-huge {
-			font-size: 80px;
-		}
-
-		.circular-progress-wrapper-huge {
-			width: 280px;
-			height: 280px;
-		}
+	/* ── State pill ── */
+	.state-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 7px 18px;
+		border-radius: 50px;
+		border: 1px solid;
+		font-size: 11px;
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 2.5px;
 	}
 
-	.tap-hint {
-		font-size: 16px;
-		font-weight: 500;
-		opacity: 0.85;
-		letter-spacing: 0.5px;
+	.pip {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		flex-shrink: 0;
 	}
 
-	/* ===== PAUSED SCREEN ===== */
-	.paused-container {
-		width: 100%;
-		height: 100%;
+	/* ── Workout meta ── */
+	.meta-block {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		justify-content: center;
-		padding: 40px 20px;
-		gap: 50px;
-		position: relative;
+		gap: 6px;
+		margin-top: -6px;
 	}
 
-	.paused-title {
-		font-size: 48px;
+	.workout-label {
+		font-size: 12px;
 		font-weight: 700;
-		letter-spacing: 2px;
-	}
-
-	.paused-info {
-		font-size: 20px;
-		font-weight: 600;
-		text-align: center;
-		line-height: 1.6;
-		opacity: 0.95;
-	}
-
-	.btn-resume {
-		background: linear-gradient(135deg, var(--primary-green), #27ae60);
-		color: var(--bg-dark);
-		border: none;
-		padding: 28px 48px;
-		font-size: 20px;
-		font-weight: 700;
-		border-radius: 12px;
-		cursor: pointer;
-		transition: all 0.2s ease;
 		text-transform: uppercase;
-		letter-spacing: 1.5px;
-		touch-action: manipulation;
+		letter-spacing: 3px;
+		color: rgba(255,255,255,0.25);
 	}
 
-	.btn-resume:active {
-		transform: scale(0.96);
-		box-shadow: 0 10px 30px rgba(46, 204, 113, 0.5);
-	}
-
-	.btn-exit-global {
-		position: absolute;
-		top: 20px;
-		right: 20px;
-		width: 44px;
-		height: 44px;
-		background: rgba(0, 0, 0, 0.2);
-		color: white;
-		border: none;
-		border-radius: 50%;
-		font-size: 20px;
-		font-weight: 700;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		transition: all 0.2s ease;
-		touch-action: manipulation;
-		z-index: 1000;
-	}
-
-	.btn-exit-global:active {
-		background: rgba(0, 0, 0, 0.4);
-		transform: scale(0.9);
-	}
-
-	/* ===== LARGE BUTTONS ===== */
-	.btn-large {
-		padding: 24px 48px;
+	.matchup-label {
 		font-size: 18px;
 		font-weight: 700;
+		color: rgba(255,255,255,0.65);
+		font-style: italic;
+	}
+
+	.next-label {
+		font-size: 14px;
+		color: rgba(255,255,255,0.35);
+	}
+
+	.tap-hint {
+		font-size: 12px;
+		color: rgba(255,255,255,0.18);
+		letter-spacing: 0.5px;
+		position: absolute;
+		bottom: 36px;
+		margin: 0;
+	}
+
+	/* ── Paused state ── */
+	.paused-label {
+		font-size: 12px;
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 4px;
+		color: rgba(255,255,255,0.22);
+	}
+
+	.paused-sub {
+		font-size: 14px;
+		color: rgba(255,255,255,0.22);
+		text-align: center;
+	}
+
+	/* ── Buttons ── */
+	.btn-resume {
+		background: #2ecc71;
+		color: #000;
 		border: none;
-		border-radius: 12px;
+		padding: 18px 56px;
+		font-size: 16px;
+		font-weight: 800;
+		border-radius: 16px;
 		cursor: pointer;
-		transition: all 0.2s ease;
+		text-transform: uppercase;
+		letter-spacing: 1.5px;
+		transition: all 0.2s;
+	}
+	.btn-resume:hover  { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(46,204,113,0.3); }
+	.btn-resume:active { transform: scale(0.97); }
+
+	.btn-action {
+		background: #2ecc71;
+		color: #000;
+		border: none;
+		padding: 16px 48px;
+		font-size: 15px;
+		font-weight: 800;
+		border-radius: 14px;
+		cursor: pointer;
 		text-transform: uppercase;
 		letter-spacing: 1.2px;
-		touch-action: manipulation;
-		min-width: 200px;
+		transition: all 0.2s;
+	}
+	.btn-action:hover  { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(46,204,113,0.25); }
+	.btn-action:active { transform: scale(0.97); }
+
+	.btn-ghost {
+		background: rgba(255,255,255,0.05);
+		color: rgba(255,255,255,0.55);
+		border: 1px solid rgba(255,255,255,0.12);
+	}
+	.btn-ghost:hover { background: rgba(255,255,255,0.09); color: #fff; box-shadow: none; }
+
+	/* ── Responsive ── */
+	@media (min-width: 769px) {
+		.ring-wrap  { width: 340px; height: 340px; }
+		.time-num   { font-size: 96px; }
+		.time-prep  { font-size: 112px; }
 	}
 
-	.btn-green {
-		background: var(--primary-green);
-		color: var(--bg-dark);
-	}
-
-	.btn-skip {
-		background: transparent;
-		color: var(--text-light);
-		border: 2px solid var(--primary-green);
-	}
-
-	.btn-green:active, .btn-skip:active {
-		transform: scale(0.95);
-		box-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
-	}
-
-	@media (max-width: 600px) {
-		.prep-container,
-		.work-container,
-		.rest-container,
-		.paused-container {
-			gap: 20px;
-			padding: 20px;
-		}
-
-		.circular-progress-wrapper {
-			width: 180px;
-			height: 180px;
-		}
-
-		.time-in-circle {
-			font-size: 56px;
-		}
-
-		.state-title,
-		.paused-title {
-			font-size: 28px;
-		}
-
-		.round-badge,
-		.round-info-work,
-		.round-info-rest {
-			font-size: 16px;
-		}
-
-		.paused-info {
-			font-size: 18px;
-		}
-
-		.btn-large {
-			min-width: 160px;
-			padding: 18px 36px;
-			font-size: 16px;
-		}
-
-		.btn-resume {
-			padding: 20px 36px;
-			font-size: 18px;
-		}
-
-		.btn-exit {
-			width: 45px;
-			height: 45px;
-			font-size: 24px;
-		}
+	@media (max-width: 480px) {
+		.ring-wrap  { width: 240px; height: 240px; }
+		.time-num   { font-size: 62px; letter-spacing: -2px; }
+		.time-prep  { font-size: 76px; }
+		.center-view { gap: 20px; }
 	}
 </style>
