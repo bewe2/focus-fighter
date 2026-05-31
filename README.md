@@ -75,7 +75,7 @@
   3. Workout-Auswahl → Setup-Konfiguration → Timer (Vollbild)
   4. Timer-Ende → Session speichern (mit optionalen Notizen) → Dashboard
   5. Dashboard / History → Vergangene Einheiten einsehen
-- **Mockup:** _(Figma-Link einfügen)_
+- **Mockup:** [Figma – FocusFighters](https://www.figma.com/design/9Ur54AqWxJTMP7WU7QHRTO/FocusFighters?node-id=0-1&t=PDJLW4a8wrmmT660-1)
 
 ### 3.4 Prototype
 
