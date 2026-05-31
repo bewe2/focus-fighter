@@ -7,14 +7,61 @@
 	let { data } = $props();
 
 	const workoutNames = {
-		bag: 'Sandsack',
-		shadowboxing: 'Schattenboxen',
-		hiit: 'HIIT',
-		sparring: 'Sparring'
+		de: {
+			bag: 'Sandsack',
+			shadowboxing: 'Schattenboxen',
+			hiit: 'HIIT',
+			sparring: 'Sparring'
+		},
+		en: {
+			bag: 'Heavy Bag',
+			shadowboxing: 'Shadow Boxing',
+			hiit: 'HIIT',
+			sparring: 'Sparring'
+		}
 	};
 
+	const t = {
+		de: {
+			greeting: 'Hallo',
+			title: 'Trainer Zentrale',
+			subtitle: 'Deine Performance der Woche im Überblick',
+			workoutTime: 'Trainingszeit',
+			sessionsThisWeek: 'Einheiten diese Woche',
+			resetInfo: 'Reset jeden Montag',
+			lastWorkout: 'Zuletzt trainiert',
+			recentSessions: 'Letzte Einheiten',
+			minutes: 'Min',
+			workout: 'Training',
+			rounds: 'Runden',
+			noWorkouts: 'Noch keine Trainings absolviert',
+			noWorkoutsHint: 'Starte hier dein erstes Training',
+			startWorkout: 'Training starten'
+		},
+		en: {
+			greeting: 'Hello',
+			title: 'Trainer Central',
+			subtitle: 'Your weekly performance overview',
+			workoutTime: 'Workout Time',
+			sessionsThisWeek: 'Sessions this week',
+			resetInfo: 'Resets every Monday',
+			lastWorkout: 'Last workout',
+			recentSessions: 'Recent sessions',
+			minutes: 'Min',
+			workout: 'Workout',
+			rounds: 'Rounds',
+			noWorkouts: 'No workouts completed yet',
+			noWorkoutsHint: 'Start your first workout here',
+			startWorkout: 'Start Workout'
+		}
+	};
+
+	let currentT = $derived(t[$settings.language]);
+	let currentWorkoutNames = $derived(workoutNames[$settings.language]);
+
 	function formatDate(iso) {
-		return new Date(iso).toLocaleDateString('de-DE', {
+		const lang = $settings.language === 'de' ? 'de-DE' : 'en-US';
+		return new Date(iso).toLocaleDateString(lang, {
 			weekday: 'short',
 			day: '2-digit',
 			month: '2-digit'
@@ -32,16 +79,17 @@
 		goto('/workout');
 	}
 
-	let progressPercent = $derived(Math.min((data.stats.weeklyCount / data.stats.goalCount) * 100, 100));
+	let weeklyGoal = $derived($settings.weeklyGoal ?? 5);
+	let progressPercent = $derived(Math.min((data.stats.weeklyCount / weeklyGoal) * 100, 100));
 
-	const greeting = $derived($settings.language === 'de' ? `Hallo ${data.trainerName}` : `Hello ${data.trainerName}`);
+	const greeting = $derived(`${currentT.greeting} ${data.trainerName}`);
 </script>
 
 <div class="dashboard-wrapper">
 	<header class="dashboard-header" in:fade>
 		<div class="header-greeting">{greeting} 👋</div>
-		<h1>Trainer Zentrale</h1>
-		<p>{$settings.language === 'de' ? 'Deine Performance der Woche im Überblick' : 'Your weekly performance overview'}</p>
+		<h1>{currentT.title}</h1>
+		<p>{currentT.subtitle}</p>
 	</header>
 
 	<div class="stats-grid">
@@ -49,8 +97,8 @@
 		<div class="stat-card glass" in:fly={{ y: 20, delay: 100 }}>
 			<div class="stat-icon green"><Clock size={24} /></div>
 			<div class="stat-content">
-				<span class="stat-label">{$settings.language === 'de' ? 'Trainingszeit' : 'Workout Time'}</span>
-				<span class="stat-value">{data.stats.totalMinutes} <small>Min</small></span>
+				<span class="stat-label">{currentT.workoutTime}</span>
+				<span class="stat-value">{data.stats.totalMinutes} <small>{currentT.minutes}</small></span>
 			</div>
 		</div>
 
@@ -58,12 +106,12 @@
 		<div class="stat-card glass" in:fly={{ y: 20, delay: 200 }}>
 			<div class="stat-icon yellow"><Trophy size={24} /></div>
 			<div class="stat-content">
-				<span class="stat-label">{$settings.language === 'de' ? 'Einheiten diese Woche' : 'Sessions this week'}</span>
-				<span class="stat-value">{data.stats.weeklyCount} <small>/ {data.stats.goalCount}</small></span>
+				<span class="stat-label">{currentT.sessionsThisWeek}</span>
+				<span class="stat-value">{data.stats.weeklyCount} <small>/ {weeklyGoal}</small></span>
 				<div class="goal-bar">
 					<div class="goal-fill" style="width: {progressPercent}%"></div>
 				</div>
-				<span class="reset-info">{$settings.language === 'de' ? 'Reset jeden Montag' : 'Resets every Monday'}</span>
+				<span class="reset-info">{currentT.resetInfo}</span>
 			</div>
 		</div>
 	</div>
@@ -72,8 +120,8 @@
 		<section class="quick-action" in:fade={{ delay: 300 }}>
 			<button class="btn-repeat glass" onclick={() => repeatWorkout(data.lastSessions[0])}>
 				<div class="btn-info">
-					<span class="btn-label">{$settings.language === 'de' ? 'Zuletzt trainiert' : 'Last workout'}</span>
-					<span class="btn-workout">{workoutNames[data.lastSessions[0].type] || 'Training'}</span>
+					<span class="btn-label">{currentT.lastWorkout}</span>
+					<span class="btn-workout">{currentWorkoutNames[data.lastSessions[0].type] || currentT.workout}</span>
 				</div>
 				<div class="btn-play">
 					<Play size={24} fill="currentColor" />
@@ -83,7 +131,7 @@
 
 		<section class="history-section" in:fade={{ delay: 400 }}>
 			<div class="section-header">
-				<h2><History size={20} /> {$settings.language === 'de' ? 'Letzte Einheiten' : 'Recent sessions'}</h2>
+				<h2><History size={20} /> {currentT.recentSessions}</h2>
 			</div>
 
 			<div class="history-list">
@@ -91,14 +139,14 @@
 					<div class="history-card glass">
 						<div class="history-main">
 							<div class="history-type">
-								<span class="type-name">{workoutNames[session.type] || 'Workout'}</span>
+								<span class="type-name">{currentWorkoutNames[session.type] || currentT.workout}</span>
 								{#if session.fighter1 && session.fighter2}
 									<span class="matchup-tag">{session.fighter1} vs {session.fighter2}</span>
 								{/if}
 								<span class="history-date">{formatDate(session.timestamp)}</span>
 							</div>
 							<div class="history-meta">
-								{session.rounds} Runden • {Math.round((session.rounds * ((session.workDuration || session.workTime) + (session.restDuration || session.restTime))) / 60)} Min
+								{session.rounds} {currentT.rounds} • {Math.round((session.rounds * ((session.workDuration || session.workTime) + (session.restDuration || session.restTime))) / 60)} {currentT.minutes}
 							</div>
 						</div>
 						{#if session.trainerNotes}
@@ -107,6 +155,16 @@
 					</div>
 				{/each}
 			</div>
+		</section>
+	{:else}
+		<section class="empty-state" in:fade={{ delay: 300 }}>
+			<div class="empty-icon">🥊</div>
+			<h2>{currentT.noWorkouts}</h2>
+			<p>{currentT.noWorkoutsHint}</p>
+			<button class="btn-start-first" onclick={() => goto('/workouts')}>
+				<Play size={20} fill="currentColor" />
+				{currentT.startWorkout}
+			</button>
 		</section>
 	{/if}
 </div>
@@ -259,6 +317,62 @@
 	.history-date { font-size: 12px; color: #95a5a6; }
 	.history-meta { font-size: 13px; color: #2ecc71; font-weight: 600; }
 	.history-notes { font-size: 14px; font-style: italic; color: #95a5a6; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+
+	/* --- Empty State --- */
+	.empty-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 16px;
+		padding: 60px 20px;
+		text-align: center;
+		background: rgba(255, 255, 255, 0.03);
+		border: 1px solid rgba(255, 255, 255, 0.05);
+		border-radius: 24px;
+	}
+
+	.empty-icon {
+		font-size: 56px;
+		line-height: 1;
+	}
+
+	.empty-state h2 {
+		font-size: 22px;
+		font-weight: 800;
+		color: #fff;
+		margin: 0;
+	}
+
+	.empty-state p {
+		font-size: 15px;
+		color: #95a5a6;
+		margin: 0;
+	}
+
+	.btn-start-first {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		background: #2ecc71;
+		color: #000;
+		border: none;
+		border-radius: 14px;
+		padding: 16px 32px;
+		font-size: 16px;
+		font-weight: 700;
+		cursor: pointer;
+		margin-top: 8px;
+		transition: all 0.2s ease;
+	}
+
+	.btn-start-first:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 20px rgba(46, 204, 113, 0.35);
+	}
+
+	.btn-start-first:active {
+		transform: scale(0.97);
+	}
 
 	@media (max-width: 600px) {
 		.stats-grid { grid-template-columns: 1fr; }
