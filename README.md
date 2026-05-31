@@ -148,7 +148,7 @@
   - **Client-State:** Theme, Sprache und Wochenziel werden via `localStorage` persistiert (kein Server-Round-Trip nötig)
   - **Workout-Übergabe:** Konfiguration wird via `sessionStorage` zwischen Setup- und Timer-Route übergeben
 
-- **Deployment:** [https://focusfighter.netlify.app](https://focusfighter.netlify.app) _(URL anpassen)_
+- **Deployment:** [https://focusfighters.netlify.app](https://focusfighters.netlify.app)
 
 - **Besondere Entscheidungen:**
   - Session-Management selbst implementiert statt OAuth-Bibliothek – bewusste Vereinfachung für den Projektumfang
@@ -157,7 +157,7 @@
 
 ### 3.5 Validate
 
-- **URL der getesteten Version:** _(Netlify Preview-URL einfügen)_
+- **URL der getesteten Version:** [https://focusfighters.netlify.app](https://focusfighters.netlify.app)
 - **Ziele der Prüfung:**
   - Ist der Timer ohne Erklärung sofort bedienbar?
   - Können Nutzer ein angepasstes Workout konfigurieren und starten?
