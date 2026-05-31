@@ -1,6 +1,7 @@
 <script>
 	import { fade, fly } from 'svelte/transition';
-	import { History, Sword, Zap, User, Target, Calendar, Clock } from 'lucide-svelte';
+	import { enhance } from '$app/forms';
+	import { History, Sword, Zap, User, Target, Calendar, Clock, Trash2 } from 'lucide-svelte';
 	import { settings } from '$lib/settingsStore';
 
 	let { data } = $props();
@@ -104,7 +105,7 @@
 								<div class="card-left" style="background: {config.color}15; color: {config.color}">
 									<config.icon size={24} />
 								</div>
-								
+
 								<div class="card-body">
 									<div class="session-header">
 										<h3>{config.name}</h3>
@@ -125,6 +126,13 @@
 										</div>
 									{/if}
 								</div>
+
+								<form method="POST" action="?/delete" use:enhance class="delete-form">
+									<input type="hidden" name="id" value={session._id} />
+									<button type="submit" class="btn-delete" title="Löschen">
+										<Trash2 size={16} />
+									</button>
+								</form>
 							</div>
 						{/each}
 					</div>
@@ -218,6 +226,30 @@
 	.session-card:hover {
 		transform: translateX(4px);
 		background: rgba(255, 255, 255, 0.05);
+	}
+
+	.delete-form {
+		display: flex;
+		align-items: center;
+		padding: 0 16px;
+		flex-shrink: 0;
+	}
+
+	.btn-delete {
+		background: transparent;
+		border: none;
+		color: rgba(255, 255, 255, 0.2);
+		cursor: pointer;
+		padding: 8px;
+		border-radius: 8px;
+		display: flex;
+		align-items: center;
+		transition: all 0.2s;
+	}
+
+	.btn-delete:hover {
+		color: #e74c3c;
+		background: rgba(231, 76, 60, 0.1);
 	}
 
 	.card-left {
