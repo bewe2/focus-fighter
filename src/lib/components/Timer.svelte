@@ -63,10 +63,10 @@
 	let intervalId  = $state(null);
 
 	const stateConfig = $derived({
-		prep:   { label: currentT.prep,   color: '#818cf8', duration: 10          },
-		work:   { label: currentT.work,   color: '#2ecc71', duration: workDuration },
-		rest:   { label: currentT.rest,   color: '#f59e0b', duration: restDuration },
-		paused: { label: currentT.paused, color: '#6b7280', duration: 0            }
+		prep:   { label: currentT.prep,   color: '#818cf8', glow: 'rgba(129,140,248,0.22)', duration: 10          },
+		work:   { label: currentT.work,   color: '#2ecc71', glow: 'rgba(46,204,113,0.28)',  duration: workDuration },
+		rest:   { label: currentT.rest,   color: '#f59e0b', glow: 'rgba(245,158,11,0.28)',  duration: restDuration },
+		paused: { label: currentT.paused, color: '#e74c3c', glow: 'rgba(231,76,60,0.18)',   duration: 0            }
 	});
 
 	// ── Timer logic ──────────────────────────────────────────────────
@@ -197,7 +197,7 @@
 	const C = 603;
 </script>
 
-<div class="timer-screen">
+<div class="timer-screen" style="background: radial-gradient(ellipse 130% 90% at 50% 42%, {stateConfig[state].glow} 0%, #050810 65%)">
 
 	<!-- Skip button (top-left, only during work/rest) -->
 	{#if state === 'work'}
@@ -245,6 +245,8 @@
 	{:else if state === 'prep'}
 		{@const c = stateConfig.prep.color}
 		<div class="center-view">
+			<div class="state-bg-label" style="color:{c}">{stateConfig.prep.label}</div>
+
 			<div class="round-line">
 				{currentT.round} <strong>{currentRound + 1}</strong> / {rounds}
 			</div>
@@ -253,14 +255,9 @@
 				<svg viewBox="0 0 220 220" class="ring-svg">
 					<circle cx="110" cy="110" r="96" class="ring-track"/>
 					<circle cx="110" cy="110" r="96" class="ring-fill"
-						style="stroke: {c}; filter: drop-shadow(0 0 10px {c}); stroke-dasharray: {(C * getProgressPercent()) / 100} {C}"/>
+						style="stroke:{c}; filter:drop-shadow(0 0 14px {c}); stroke-dasharray:{(C * getProgressPercent()) / 100} {C}"/>
 				</svg>
-				<div class="time-num time-prep">{String(timeLeft).padStart(2, '0')}</div>
-			</div>
-
-			<div class="state-pill" style="color:{c}; border-color:{c}40; background:{c}18">
-				<span class="pip" style="background:{c}"></span>
-				{stateConfig.prep.label}
+				<div class="time-num time-prep" style="text-shadow: 0 0 50px {c}60">{String(timeLeft).padStart(2, '0')}</div>
 			</div>
 
 			{#if !isRunning}
@@ -274,6 +271,9 @@
 	{:else}
 		{@const c = stateConfig[state].color}
 		<div class="center-view fullscreen-tap" onclick={handleFullScreenTap}>
+
+			<div class="state-bg-label" style="color:{c}">{stateConfig[state].label}</div>
+
 			<div class="round-line">
 				{currentT.round} <strong>{currentRound + 1}</strong> / {rounds}
 			</div>
@@ -282,14 +282,9 @@
 				<svg viewBox="0 0 220 220" class="ring-svg">
 					<circle cx="110" cy="110" r="96" class="ring-track"/>
 					<circle cx="110" cy="110" r="96" class="ring-fill"
-						style="stroke:{c}; filter:drop-shadow(0 0 12px {c}); stroke-dasharray:{(C * getProgressPercent()) / 100} {C}"/>
+						style="stroke:{c}; filter:drop-shadow(0 0 16px {c}); stroke-dasharray:{(C * getProgressPercent()) / 100} {C}"/>
 				</svg>
-				<div class="time-num">{formatTime(timeLeft)}</div>
-			</div>
-
-			<div class="state-pill" style="color:{c}; border-color:{c}40; background:{c}18">
-				<span class="pip" style="background:{c}"></span>
-				{stateConfig[state].label}
+				<div class="time-num" style="text-shadow: 0 0 60px {c}70">{formatTime(timeLeft)}</div>
 			</div>
 
 			<div class="meta-block">
@@ -317,7 +312,6 @@
 	.timer-screen {
 		width: 100%;
 		height: 100vh;
-		background: #050810;
 		color: #ecf0f1;
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 		display: flex;
@@ -325,6 +319,16 @@
 		justify-content: center;
 		position: relative;
 		overflow: hidden;
+		transition: background 0.6s ease;
+	}
+
+	/* Big state label — clearly visible from across the room */
+	.state-bg-label {
+		font-size: 13px;
+		font-weight: 900;
+		text-transform: uppercase;
+		letter-spacing: 6px;
+		opacity: 0.7;
 	}
 
 	/* ── Corner controls ── */
