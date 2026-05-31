@@ -62,11 +62,29 @@
 	let prevState   = $state('prep');
 	let intervalId  = $state(null);
 
+	const dark = $derived($settings.theme !== 'light');
+
 	const stateConfig = $derived({
-		prep:   { label: currentT.prep,   color: '#2ecc71', bg: 'linear-gradient(160deg, #0c1a27 0%, #0a0e27 60%)', duration: 10          },
-		work:   { label: currentT.work,   color: '#2ecc71', bg: 'linear-gradient(160deg, #0d2318 0%, #0a0e27 60%)', duration: workDuration },
-		rest:   { label: currentT.rest,   color: '#f59e0b', bg: 'linear-gradient(160deg, #231a08 0%, #0a0e27 60%)', duration: restDuration },
-		paused: { label: currentT.paused, color: '#e74c3c', bg: 'linear-gradient(160deg, #1e0c0c 0%, #0a0e27 60%)', duration: 0            }
+		prep: {
+			label: currentT.prep,   color: '#2ecc71', duration: 10,
+			bg:   dark ? 'linear-gradient(160deg, #0c1f30 0%, #0a0e27 65%)' : 'linear-gradient(160deg, #d8f5e8 0%, #f0ede8 70%)',
+			text: dark ? '#ecf0f1' : '#1c1c2e',
+		},
+		work: {
+			label: currentT.work,   color: '#2ecc71', duration: workDuration,
+			bg:   dark ? 'linear-gradient(160deg, #0b4a28 0%, #061a0e 100%)' : 'linear-gradient(160deg, #a8f0cc 0%, #d5f5e4 100%)',
+			text: dark ? '#ecf0f1' : '#0d2e1a',
+		},
+		rest: {
+			label: currentT.rest,   color: '#f59e0b', duration: restDuration,
+			bg:   dark ? 'linear-gradient(160deg, #4a3208 0%, #1c1204 100%)' : 'linear-gradient(160deg, #fde8a8 0%, #faf3d8 100%)',
+			text: dark ? '#ecf0f1' : '#2e1e04',
+		},
+		paused: {
+			label: currentT.paused, color: '#e74c3c', duration: 0,
+			bg:   dark ? 'linear-gradient(160deg, #4a1010 0%, #1c0606 100%)' : 'linear-gradient(160deg, #fcc8c8 0%, #f9e8e8 100%)',
+			text: dark ? '#ecf0f1' : '#2e0a0a',
+		}
 	});
 
 	// ── Timer logic ──────────────────────────────────────────────────
@@ -197,7 +215,7 @@
 	const C = 603;
 </script>
 
-<div class="timer-screen" style="background: {stateConfig[state].bg}">
+<div class="timer-screen" style="background:{stateConfig[state].bg}; color:{stateConfig[state].text}">
 
 	<!-- Skip (top-left, work/rest only) -->
 	{#if state === 'work'}
@@ -337,9 +355,10 @@
 		top: 20px;
 		left: 20px;
 		z-index: 100;
-		background: rgba(255,255,255,0.07);
-		color: rgba(255,255,255,0.5);
-		border: 1px solid rgba(255,255,255,0.1);
+		background: rgba(128,128,128,0.15);
+		color: inherit;
+		opacity: 0.7;
+		border: 1px solid rgba(128,128,128,0.2);
 		border-radius: 20px;
 		padding: 8px 14px;
 		font-size: 12px;
@@ -351,7 +370,7 @@
 		align-items: center;
 		gap: 5px;
 	}
-	.btn-skip-corner:hover  { background: rgba(255,255,255,0.13); color: #fff; }
+	.btn-skip-corner:hover  { background: rgba(128,128,128,0.25); opacity: 1; }
 	.btn-skip-corner:active { transform: scale(0.95); }
 
 	.top-right {
@@ -367,9 +386,10 @@
 	.btn-exit {
 		width: 40px;
 		height: 40px;
-		background: rgba(255,255,255,0.07);
-		border: 1px solid rgba(255,255,255,0.1);
-		color: rgba(255,255,255,0.5);
+		background: rgba(128,128,128,0.15);
+		border: 1px solid rgba(128,128,128,0.2);
+		color: inherit;
+		opacity: 0.7;
 		border-radius: 50%;
 		font-size: 16px;
 		cursor: pointer;
@@ -378,7 +398,7 @@
 		justify-content: center;
 		transition: all 0.2s;
 	}
-	.btn-exit:hover { background: rgba(231,76,60,0.2); color: #e74c3c; border-color: rgba(231,76,60,0.3); }
+	.btn-exit:hover { background: rgba(231,76,60,0.2); color: #e74c3c; border-color: rgba(231,76,60,0.3); opacity: 1; }
 
 	.mic-dot {
 		width: 32px;
@@ -419,13 +439,14 @@
 
 	/* ── Round badge ── */
 	.round-badge {
-		background: rgba(255,255,255,0.06);
-		border: 1px solid rgba(255,255,255,0.1);
+		background: rgba(128,128,128,0.12);
+		border: 1px solid rgba(128,128,128,0.18);
 		border-radius: 50px;
 		padding: 6px 18px;
 		font-size: 14px;
 		font-weight: 700;
-		color: rgba(255,255,255,0.6);
+		color: inherit;
+		opacity: 0.7;
 		letter-spacing: 0.5px;
 	}
 
@@ -448,7 +469,7 @@
 
 	.ring-track {
 		fill: none;
-		stroke: rgba(255,255,255,0.08);
+		stroke: rgba(128,128,128,0.18);
 		stroke-width: 8;
 	}
 
@@ -475,7 +496,7 @@
 	}
 
 	.time-paused {
-		color: rgba(255,255,255,0.3);
+		opacity: 0.35;
 		font-size: 72px;
 	}
 
@@ -518,13 +539,15 @@
 
 	.sub-info {
 		font-size: 14px;
-		color: rgba(255,255,255,0.4);
+		color: inherit;
+		opacity: 0.5;
 		margin: 0;
 	}
 
 	.tap-hint {
 		font-size: 12px;
-		color: rgba(255,255,255,0.2);
+		color: inherit;
+		opacity: 0.25;
 		letter-spacing: 0.5px;
 		position: absolute;
 		bottom: 36px;
