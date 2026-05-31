@@ -63,10 +63,10 @@
 	let intervalId  = $state(null);
 
 	const stateConfig = $derived({
-		prep:   { label: currentT.prep,   color: '#818cf8', glow: 'rgba(129,140,248,0.22)', duration: 10          },
-		work:   { label: currentT.work,   color: '#2ecc71', glow: 'rgba(46,204,113,0.28)',  duration: workDuration },
-		rest:   { label: currentT.rest,   color: '#f59e0b', glow: 'rgba(245,158,11,0.28)',  duration: restDuration },
-		paused: { label: currentT.paused, color: '#e74c3c', glow: 'rgba(231,76,60,0.18)',   duration: 0            }
+		prep:   { label: currentT.prep,   color: '#2ecc71', bg: 'linear-gradient(160deg, #0c1a27 0%, #0a0e27 60%)', duration: 10          },
+		work:   { label: currentT.work,   color: '#2ecc71', bg: 'linear-gradient(160deg, #0d2318 0%, #0a0e27 60%)', duration: workDuration },
+		rest:   { label: currentT.rest,   color: '#f59e0b', bg: 'linear-gradient(160deg, #231a08 0%, #0a0e27 60%)', duration: restDuration },
+		paused: { label: currentT.paused, color: '#e74c3c', bg: 'linear-gradient(160deg, #1e0c0c 0%, #0a0e27 60%)', duration: 0            }
 	});
 
 	// ── Timer logic ──────────────────────────────────────────────────
@@ -197,9 +197,9 @@
 	const C = 603;
 </script>
 
-<div class="timer-screen" style="background: radial-gradient(ellipse 130% 90% at 50% 42%, {stateConfig[state].glow} 0%, #050810 65%)">
+<div class="timer-screen" style="background: {stateConfig[state].bg}">
 
-	<!-- Skip button (top-left, only during work/rest) -->
+	<!-- Skip (top-left, work/rest only) -->
 	{#if state === 'work'}
 		<button class="btn-skip-corner" onclick={(e) => { e.stopPropagation(); skipRound(); }}>
 			⏭ {currentT.skipRound}
@@ -220,44 +220,51 @@
 
 	<!-- ── PAUSED ── -->
 	{#if state === 'paused'}
-		<div class="paused-view">
-			<span class="paused-label">{currentT.paused}</span>
-
-			<div class="ring-wrap ring-sm">
-				<svg viewBox="0 0 220 220" class="ring-svg">
-					<circle cx="110" cy="110" r="96" class="ring-track"/>
-					<circle cx="110" cy="110" r="96" class="ring-fill"
-						style="stroke: rgba(255,255,255,0.15); stroke-dasharray: {(C * getProgressPercent()) / 100} {C}"/>
-				</svg>
-				<div class="time-num time-dim">{formatTime(timeLeft)}</div>
-			</div>
-
-			<div class="paused-sub">
-				{currentT.round} {currentRound + 1} / {rounds}
-				&nbsp;·&nbsp;
-				{formatTime(timeLeft)} {currentT.remaining}
-			</div>
-
-			<button class="btn-resume" onclick={resumeWorkout}>{currentT.resume}</button>
-		</div>
-
-	<!-- ── PREP ── -->
-	{:else if state === 'prep'}
-		{@const c = stateConfig.prep.color}
 		<div class="center-view">
-			<div class="state-bg-label" style="color:{c}">{stateConfig.prep.label}</div>
-
-			<div class="round-line">
-				{currentT.round} <strong>{currentRound + 1}</strong> / {rounds}
+			<div class="round-badge">
+				{currentT.round} {currentRound + 1} / {rounds}
 			</div>
 
 			<div class="ring-wrap">
 				<svg viewBox="0 0 220 220" class="ring-svg">
 					<circle cx="110" cy="110" r="96" class="ring-track"/>
 					<circle cx="110" cy="110" r="96" class="ring-fill"
-						style="stroke:{c}; filter:drop-shadow(0 0 14px {c}); stroke-dasharray:{(C * getProgressPercent()) / 100} {C}"/>
+						style="stroke: rgba(231,76,60,0.35); stroke-dasharray: {(C * getProgressPercent()) / 100} {C}"/>
 				</svg>
-				<div class="time-num time-prep" style="text-shadow: 0 0 50px {c}60">{String(timeLeft).padStart(2, '0')}</div>
+				<div class="time-num time-paused">{formatTime(timeLeft)}</div>
+			</div>
+
+			<div class="state-badge paused-badge">
+				<span class="pip" style="background:#e74c3c"></span>
+				{currentT.paused}
+			</div>
+
+			<p class="sub-info">{formatTime(timeLeft)} {currentT.remaining}</p>
+
+			<button class="btn-resume" onclick={resumeWorkout}>{currentT.resume}</button>
+		</div>
+
+	<!-- ── PREP ── -->
+	{:else if state === 'prep'}
+		<div class="center-view">
+			<div class="workout-name-top">{workoutName}</div>
+
+			<div class="round-badge">
+				{currentT.round} {currentRound + 1} / {rounds}
+			</div>
+
+			<div class="ring-wrap">
+				<svg viewBox="0 0 220 220" class="ring-svg">
+					<circle cx="110" cy="110" r="96" class="ring-track"/>
+					<circle cx="110" cy="110" r="96" class="ring-fill"
+						style="stroke: #2ecc71; stroke-dasharray: {(C * getProgressPercent()) / 100} {C}"/>
+				</svg>
+				<div class="time-num time-prep">{String(timeLeft).padStart(2, '0')}</div>
+			</div>
+
+			<div class="state-badge" style="color:#2ecc71; border-color:rgba(46,204,113,0.3); background:rgba(46,204,113,0.1)">
+				<span class="pip" style="background:#2ecc71"></span>
+				{stateConfig.prep.label}
 			</div>
 
 			{#if !isRunning}
@@ -272,35 +279,37 @@
 		{@const c = stateConfig[state].color}
 		<div class="center-view fullscreen-tap" onclick={handleFullScreenTap}>
 
-			<div class="state-bg-label" style="color:{c}">{stateConfig[state].label}</div>
+			<div class="workout-name-top">{workoutName}</div>
 
-			<div class="round-line">
-				{currentT.round} <strong>{currentRound + 1}</strong> / {rounds}
+			<div class="round-badge">
+				{currentT.round} {currentRound + 1} / {rounds}
 			</div>
 
 			<div class="ring-wrap">
 				<svg viewBox="0 0 220 220" class="ring-svg">
 					<circle cx="110" cy="110" r="96" class="ring-track"/>
 					<circle cx="110" cy="110" r="96" class="ring-fill"
-						style="stroke:{c}; filter:drop-shadow(0 0 16px {c}); stroke-dasharray:{(C * getProgressPercent()) / 100} {C}"/>
+						style="stroke:{c}; stroke-dasharray:{(C * getProgressPercent()) / 100} {C}"/>
 				</svg>
-				<div class="time-num" style="text-shadow: 0 0 60px {c}70">{formatTime(timeLeft)}</div>
+				<div class="time-num">{formatTime(timeLeft)}</div>
 			</div>
 
-			<div class="meta-block">
-				<div class="workout-label">{workoutName}</div>
-				{#if fighter1 && fighter2}
-					<div class="matchup-label">
-						{fighter1} <span style="color:{c}; font-style:normal">vs</span> {fighter2}
-					</div>
-				{:else if state === 'rest'}
-					<div class="next-label">
-						{currentRound + 1 < rounds
-							? `${currentT.nextRound} ${currentRound + 2} / ${rounds}`
-							: currentT.lastRest}
-					</div>
-				{/if}
+			<div class="state-badge" style="color:{c}; border-color:{c}50; background:{c}18">
+				<span class="pip" style="background:{c}"></span>
+				{stateConfig[state].label}
 			</div>
+
+			{#if fighter1 && fighter2}
+				<div class="matchup-info">
+					{fighter1} <span class="vs" style="color:{c}">vs</span> {fighter2}
+				</div>
+			{:else if state === 'rest'}
+				<div class="sub-info">
+					{currentRound + 1 < rounds
+						? `${currentT.nextRound} ${currentRound + 2} / ${rounds}`
+						: currentT.lastRest}
+				</div>
+			{/if}
 
 			<p class="tap-hint">{currentT.tapToPause}</p>
 		</div>
@@ -319,16 +328,7 @@
 		justify-content: center;
 		position: relative;
 		overflow: hidden;
-		transition: background 0.6s ease;
-	}
-
-	/* Big state label — clearly visible from across the room */
-	.state-bg-label {
-		font-size: 13px;
-		font-weight: 900;
-		text-transform: uppercase;
-		letter-spacing: 6px;
-		opacity: 0.7;
+		transition: background 0.5s ease;
 	}
 
 	/* ── Corner controls ── */
@@ -394,13 +394,13 @@
 	}
 	@keyframes mic-blink { 0%,100%{opacity:1}50%{opacity:0.35} }
 
-	/* ── Layouts ── */
+	/* ── Layout ── */
 	.center-view {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 28px;
+		gap: 24px;
 		padding: 100px 24px 60px;
 		width: 100%;
 		height: 100%;
@@ -408,42 +408,35 @@
 
 	.fullscreen-tap { cursor: pointer; user-select: none; }
 
-	.paused-view {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 30px;
-		padding: 20px;
-		width: 100%;
-		height: 100%;
+	/* ── Workout name (top) ── */
+	.workout-name-top {
+		font-size: 11px;
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 4px;
+		color: rgba(255,255,255,0.35);
 	}
 
-	/* ── Round line ── */
-	.round-line {
+	/* ── Round badge ── */
+	.round-badge {
+		background: rgba(255,255,255,0.06);
+		border: 1px solid rgba(255,255,255,0.1);
+		border-radius: 50px;
+		padding: 6px 18px;
 		font-size: 14px;
-		font-weight: 500;
-		color: rgba(255,255,255,0.3);
+		font-weight: 700;
+		color: rgba(255,255,255,0.6);
 		letter-spacing: 0.5px;
-	}
-	.round-line strong {
-		color: rgba(255,255,255,0.8);
-		font-size: 17px;
 	}
 
 	/* ── Ring ── */
 	.ring-wrap {
 		position: relative;
-		width: 280px;
-		height: 280px;
+		width: 300px;
+		height: 300px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-	}
-
-	.ring-sm {
-		width: 200px;
-		height: 200px;
 	}
 
 	.ring-svg {
@@ -455,107 +448,87 @@
 
 	.ring-track {
 		fill: none;
-		stroke: rgba(255,255,255,0.06);
-		stroke-width: 7;
+		stroke: rgba(255,255,255,0.08);
+		stroke-width: 8;
 	}
 
 	.ring-fill {
 		fill: none;
-		stroke-width: 7;
+		stroke-width: 8;
 		stroke-linecap: round;
 		transition: stroke-dasharray 0.25s linear;
 	}
 
 	/* ── Time display ── */
 	.time-num {
-		font-size: 74px;
-		font-weight: 700;
-		letter-spacing: -3px;
+		font-size: 80px;
+		font-weight: 800;
 		color: #fff;
 		line-height: 1;
 		font-variant-numeric: tabular-nums;
+		letter-spacing: -1px;
 	}
 
-	.time-prep { font-size: 90px; }
-
-	.time-dim {
-		color: rgba(255,255,255,0.25);
-		font-size: 56px;
-		letter-spacing: -2px;
+	.time-prep {
+		font-size: 96px;
+		font-weight: 900;
 	}
 
-	/* ── State pill ── */
-	.state-pill {
+	.time-paused {
+		color: rgba(255,255,255,0.3);
+		font-size: 72px;
+	}
+
+	/* ── State badge ── */
+	.state-badge {
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
-		padding: 7px 18px;
-		border-radius: 50px;
+		padding: 8px 20px;
+		border-radius: 12px;
 		border: 1px solid;
-		font-size: 11px;
-		font-weight: 800;
+		font-size: 13px;
+		font-weight: 700;
 		text-transform: uppercase;
-		letter-spacing: 2.5px;
+		letter-spacing: 2px;
+	}
+
+	.paused-badge {
+		color: rgba(255,255,255,0.4);
+		border-color: rgba(255,255,255,0.1);
+		background: rgba(255,255,255,0.05);
 	}
 
 	.pip {
-		width: 7px;
-		height: 7px;
+		width: 8px;
+		height: 8px;
 		border-radius: 50%;
 		flex-shrink: 0;
 	}
 
-	/* ── Workout meta ── */
-	.meta-block {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 6px;
-		margin-top: -6px;
-	}
-
-	.workout-label {
-		font-size: 12px;
+	/* ── Meta info ── */
+	.matchup-info {
+		font-size: 20px;
 		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 3px;
-		color: rgba(255,255,255,0.25);
-	}
-
-	.matchup-label {
-		font-size: 18px;
-		font-weight: 700;
-		color: rgba(255,255,255,0.65);
+		color: rgba(255,255,255,0.75);
 		font-style: italic;
 	}
 
-	.next-label {
+	.vs { font-style: normal; font-weight: 900; }
+
+	.sub-info {
 		font-size: 14px;
-		color: rgba(255,255,255,0.35);
+		color: rgba(255,255,255,0.4);
+		margin: 0;
 	}
 
 	.tap-hint {
 		font-size: 12px;
-		color: rgba(255,255,255,0.18);
+		color: rgba(255,255,255,0.2);
 		letter-spacing: 0.5px;
 		position: absolute;
 		bottom: 36px;
 		margin: 0;
-	}
-
-	/* ── Paused state ── */
-	.paused-label {
-		font-size: 12px;
-		font-weight: 800;
-		text-transform: uppercase;
-		letter-spacing: 4px;
-		color: rgba(255,255,255,0.22);
-	}
-
-	.paused-sub {
-		font-size: 14px;
-		color: rgba(255,255,255,0.22);
-		text-align: center;
 	}
 
 	/* ── Buttons ── */
@@ -566,13 +539,13 @@
 		padding: 18px 56px;
 		font-size: 16px;
 		font-weight: 800;
-		border-radius: 16px;
+		border-radius: 14px;
 		cursor: pointer;
 		text-transform: uppercase;
 		letter-spacing: 1.5px;
 		transition: all 0.2s;
 	}
-	.btn-resume:hover  { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(46,204,113,0.3); }
+	.btn-resume:hover  { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(46,204,113,0.3); }
 	.btn-resume:active { transform: scale(0.97); }
 
 	.btn-action {
@@ -600,15 +573,15 @@
 
 	/* ── Responsive ── */
 	@media (min-width: 769px) {
-		.ring-wrap  { width: 340px; height: 340px; }
-		.time-num   { font-size: 96px; }
-		.time-prep  { font-size: 112px; }
+		.ring-wrap { width: 360px; height: 360px; }
+		.time-num  { font-size: 100px; }
+		.time-prep { font-size: 116px; }
 	}
 
 	@media (max-width: 480px) {
-		.ring-wrap  { width: 240px; height: 240px; }
-		.time-num   { font-size: 62px; letter-spacing: -2px; }
-		.time-prep  { font-size: 76px; }
-		.center-view { gap: 20px; }
+		.ring-wrap { width: 260px; height: 260px; }
+		.time-num  { font-size: 68px; }
+		.time-prep { font-size: 84px; }
+		.center-view { gap: 18px; }
 	}
 </style>
