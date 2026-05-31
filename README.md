@@ -100,10 +100,24 @@ Die finale Lösung kombiniert Quick Start und Gestensteuerung: Workout-Liste →
 
 - **User Interface Design:**
   - **Dark-First-Design** mit tiefem Navy-Blau (`#050810`) als Hintergrund und Grün (`#2ecc71`) als Akzentfarbe – typisch für Kampfsport-Apps und reduziert Augenermüdung bei schlechter Beleuchtung in Sporthallen
-  - **Timer-Screen:** Vollbild, farbkodiert (Grün = Arbeit, Orange = Pause, Rot = Pausiert). Kreisförmiger Fortschrittsring, grosse Zeitanzeige. Tap-to-Pause auf dem gesamten Bildschirm.
+  - **Timer-Screen:** Vollbild, farbkodiert (Grün = Arbeit, Orange = Pause, Rot = Pausiert) mit radialem Hintergrund-Glow. Kreisförmiger Fortschrittsring, grosse Zeitanzeige. Tap-to-Pause auf dem gesamten Bildschirm.
   - **Dashboard:** Glasmorphismus-Karten für Statistiken, grüner Fortschrittsbalken für das Wochenziel
   - **Responsiv:** Sidebar-Navigation ab 769 px, floating Bottom-Bar auf Mobile
   - **Light-Mode:** Warmes Off-White (`#f0ede8`), alle Texte explizit auf Lesbarkeit geprüft
+
+  | Screen | Beschreibung |
+  |---|---|
+  | ![Login](docs/screenshots/01-login.png) | **Login / Registrierung** — Toggle zwischen Login und Registrierung, E-Mail + Passwort |
+  | ![Dashboard](docs/screenshots/02-dashboard.png) | **Dashboard** — Wochenstatistik, Trainingszeit, Wochenziel-Fortschritt, Empty-State mit CTA |
+  | ![Workouts](docs/screenshots/03-workouts.png) | **Workout-Auswahl** — 4 Preset-Modi + Button zum Erstellen eigener Trainings |
+  | ![Setup](docs/screenshots/04-setup.png) | **Setup** — Konfiguration von Runden, Arbeits- und Pausenzeit mit Live-Gesamtdauer |
+  | ![Timer Vorbereitung](docs/screenshots/05-timer-prep.png) | **Timer: Vorbereitung** — 10-Sekunden-Countdown startet automatisch, Sofort-Starten-Button |
+  | ![Timer Arbeit](docs/screenshots/06-timer-work.png) | **Timer: Arbeit** — Grüner Hintergrund-Glow, Ring-Fortschritt, Skip-Button oben links |
+  | ![Timer Pausiert](docs/screenshots/07-timer-paused.png) | **Timer: Pausiert** — Roter Glow, gedimmter Ring, Fortsetzen-Button |
+  | ![Timer Pause](docs/screenshots/08-timer-rest.png) | **Timer: Pause** — Amber-Glow, nächste Runde angezeigt, Pause-skippen-Button |
+  | ![Abschluss](docs/screenshots/09-completion.png) | **Trainingsabschluss** — Journal-Notizen erfassen und speichern |
+  | ![Historie](docs/screenshots/10-history.png) | **Trainings-Journal** — Alle Sessions nach Datum gruppiert mit Notizen |
+  | ![Einstellungen](docs/screenshots/11-settings.png) | **Einstellungen** — Theme, Sprache, Wochenziel, Sprachsteuerung einrichten |
 
 - **Designentscheidungen:**
   - Farbkodierung der Timer-Phasen für sofortige visuelle Rückmeldung ohne Text lesen zu müssen
