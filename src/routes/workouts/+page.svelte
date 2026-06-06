@@ -437,6 +437,11 @@
 		padding: 22px 22px 22px 26px;
 		width: 100%;
 		z-index: 1;
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		text-align: left;
+		color: inherit;
 	}
 
 	.icon-section {
