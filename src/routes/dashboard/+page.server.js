@@ -23,13 +23,17 @@ export async function load({ locals }) {
         startOfWeek.setHours(0, 0, 0, 0);
 
         const weeklySessions = await collection
-            .find({ 
+            .find({
                 trainerId: locals.user._id,
-                timestamp: { $gte: startOfWeek.toISOString() } 
+                timestamp: { $gte: startOfWeek.toISOString() }
             })
             .toArray();
 
-        const totalMinutes = weeklySessions.reduce((acc, sess) => {
+        const allSessions = await collection
+            .find({ trainerId: locals.user._id })
+            .toArray();
+
+        const totalMinutes = allSessions.reduce((acc, sess) => {
             const rounds = sess.rounds || 0;
             const work = sess.workDuration || sess.workTime || 0;
             const rest = sess.restDuration || sess.restTime || 0;

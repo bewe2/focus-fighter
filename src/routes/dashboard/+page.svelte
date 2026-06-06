@@ -26,7 +26,7 @@
 			greeting: 'Hallo',
 			title: 'Trainer Zentrale',
 			subtitle: 'Deine Performance der Woche im Überblick',
-			workoutTime: 'Trainingszeit',
+			workoutTime: 'Gesamte Trainingszeit',
 			sessionsThisWeek: 'Einheiten diese Woche',
 			resetInfo: 'Reset jeden Montag',
 			lastWorkout: 'Zuletzt trainiert',
@@ -42,7 +42,7 @@
 			greeting: 'Hello',
 			title: 'Trainer Central',
 			subtitle: 'Your weekly performance overview',
-			workoutTime: 'Workout Time',
+			workoutTime: 'Total Workout Time',
 			sessionsThisWeek: 'Sessions this week',
 			resetInfo: 'Resets every Monday',
 			lastWorkout: 'Last workout',
@@ -79,6 +79,13 @@
 		goto('/workout');
 	}
 
+	function formatTotalTime(minutes) {
+		if (minutes < 60) return `${minutes} ${currentT.minutes}`;
+		const h = Math.floor(minutes / 60);
+		const m = minutes % 60;
+		return m > 0 ? `${h}h ${m}m` : `${h}h`;
+	}
+
 	let weeklyGoal = $derived($settings.weeklyGoal ?? 5);
 	let progressPercent = $derived(Math.min((data.stats.weeklyCount / weeklyGoal) * 100, 100));
 
@@ -98,7 +105,7 @@
 			<div class="stat-icon green"><Clock size={24} /></div>
 			<div class="stat-content">
 				<span class="stat-label">{currentT.workoutTime}</span>
-				<span class="stat-value">{data.stats.totalMinutes} <small>{currentT.minutes}</small></span>
+				<span class="stat-value">{formatTotalTime(data.stats.totalMinutes)}</span>
 			</div>
 		</div>
 
