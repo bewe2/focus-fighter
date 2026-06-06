@@ -8,6 +8,7 @@
 
 	// Check if we are in workout mode to remove layout padding
 	let isWorkoutMode = $derived($page.url.pathname === '/workout');
+	let isLoginPage = $derived($page.url.pathname === '/login');
 </script>
 
 <svelte:head>
@@ -16,8 +17,10 @@
 	<meta name="theme-color" content={$settings.theme === 'dark' ? '#0a0e27' : '#f4f7f6'} />
 </svelte:head>
 
-<div class="app-shell" class:isWorkoutMode class:light-theme={$settings.theme === 'light'}>
-	<Navbar />
+<div class="app-shell" class:isWorkoutMode class:isLoginPage class:light-theme={$settings.theme === 'light'}>
+	{#if !isLoginPage}
+		<Navbar />
+	{/if}
 
 	<main class="main-content">
 		{@render children()}
@@ -254,14 +257,14 @@
 
 	/* Desktop adjustment for Sidebar */
 	@media (min-width: 769px) {
-		.app-shell:not(.isWorkoutMode) .main-content {
+		.app-shell:not(.isWorkoutMode):not(.isLoginPage) .main-content {
 			margin-left: 240px;
 		}
 	}
 
 	/* Mobile adjustment for Bottom Bar */
 	@media (max-width: 768px) {
-		.app-shell:not(.isWorkoutMode) .main-content {
+		.app-shell:not(.isWorkoutMode):not(.isLoginPage) .main-content {
 			padding-bottom: 100px;
 		}
 	}
