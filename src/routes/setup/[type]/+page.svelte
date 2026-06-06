@@ -68,9 +68,10 @@
 	$effect.pre(() => {
 		if (workoutType === 'custom') return; // handled by onMount
 		const baseConfig = workoutTypes.de[workoutType] || workoutTypes.de.bag;
-		rounds = baseConfig.defaultRounds;
-		workDuration = baseConfig.defaultWork;
-		restDuration = baseConfig.defaultRest;
+		const saved = $settings.presetDefaults?.[workoutType];
+		rounds       = saved?.rounds ?? baseConfig.defaultRounds;
+		workDuration = saved?.work   ?? baseConfig.defaultWork;
+		restDuration = saved?.rest   ?? baseConfig.defaultRest;
 	});
 
 	onMount(() => {

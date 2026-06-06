@@ -9,7 +9,8 @@ const defaultSettings = {
 	voiceControl: false,
 	voiceStopCommand: '',
 	voiceGoCommand: '',
-	customWorkouts: []
+	customWorkouts: [],
+	presetDefaults: {}
 };
 
 // Initialize from localStorage if available

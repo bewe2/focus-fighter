@@ -1,11 +1,18 @@
 <script>
 	import { goto } from '$app/navigation';
 	import { fade, fly } from 'svelte/transition';
-	import { Sword, Zap, User, Target, ChevronRight, Plus, Trash2, Dumbbell, X } from 'lucide-svelte';
+	import { Sword, Zap, User, Target, ChevronRight, Plus, Trash2, Dumbbell, X, Pencil, RotateCcw } from 'lucide-svelte';
 	import { settings } from '$lib/settingsStore';
-	import crypto from 'crypto';
 
 	const PRESET_COLORS = ['#e74c3c', '#f59e0b', '#2ecc71', '#3b82f6', '#a855f7', '#ec4899'];
+
+	// Hardcoded original defaults (never changes)
+	const PRESET_DEFAULTS = {
+		sparring:     { rounds: 10, work: 180, rest: 60 },
+		hiit:         { rounds: 8,  work: 45,  rest: 15 },
+		shadowboxing: { rounds: 3,  work: 120, rest: 30 },
+		bag:          { rounds: 6,  work: 180, rest: 60 }
+	};
 
 	const t = {
 		de: {
@@ -15,17 +22,22 @@
 			formTitle: 'Neues Training',
 			nameLabel: 'Name',
 			namePlaceholder: 'z.B. Ausdauer',
+			editTitle: 'Defaults anpassen',
+			saveDefaults: 'Als Standard speichern',
+			resetDefaults: 'Zurücksetzen',
 			roundsLabel: 'Runden',
 			workLabel: 'Arbeitszeit',
 			restLabel: 'Pausenzeit',
 			colorLabel: 'Farbe',
 			save: 'Speichern',
 			cancel: 'Abbrechen',
+			workSuffix: 'Arbeit',
+			restSuffix: 'Pause',
 			workouts: [
-				{ id: 'sparring',      name: 'Sparring Einheit',  description: '10 Runden · 3:00 Arbeit · 1:00 Pause',   details: 'Simulation realer Kampfsituationen zur Verbesserung von Timing und Distanzgefühl.', icon: Sword,  color: '#e74c3c' },
-				{ id: 'hiit',          name: 'HIIT Workout',      description: '8 Runden · 0:45 Arbeit · 0:15 Pause',    details: 'Hochintensives Intervalltraining für maximale Fettverbrennung und Ausdauer.',         icon: Zap,    color: '#f59e0b' },
-				{ id: 'shadowboxing',  name: 'Schattenboxen',     description: '3 Runden · 2:00 Arbeit · 0:30 Pause',    details: 'Fokus auf Technik, Beinarbeit und Visualisierung des Gegners.',                         icon: User,   color: '#3b82f6' },
-				{ id: 'bag',           name: 'Sandsack Training', description: '6 Runden · 3:00 Arbeit · 1:00 Pause',    details: 'Kraftentwicklung und Schlagschule am schweren Sandsack.',                              icon: Target, color: '#2ecc71' }
+				{ id: 'sparring',      name: 'Sparring Einheit',  details: 'Simulation realer Kampfsituationen zur Verbesserung von Timing und Distanzgefühl.', icon: Sword,  color: '#e74c3c' },
+				{ id: 'hiit',          name: 'HIIT Workout',      details: 'Hochintensives Intervalltraining für maximale Fettverbrennung und Ausdauer.',         icon: Zap,    color: '#f59e0b' },
+				{ id: 'shadowboxing',  name: 'Schattenboxen',     details: 'Fokus auf Technik, Beinarbeit und Visualisierung des Gegners.',                       icon: User,   color: '#3b82f6' },
+				{ id: 'bag',           name: 'Sandsack Training', details: 'Kraftentwicklung und Schlagschule am schweren Sandsack.',                             icon: Target, color: '#2ecc71' }
 			]
 		},
 		en: {
@@ -35,34 +47,91 @@
 			formTitle: 'New Workout',
 			nameLabel: 'Name',
 			namePlaceholder: 'e.g. Endurance',
+			editTitle: 'Edit defaults',
+			saveDefaults: 'Save as default',
+			resetDefaults: 'Reset',
 			roundsLabel: 'Rounds',
 			workLabel: 'Work Time',
 			restLabel: 'Rest Time',
 			colorLabel: 'Color',
 			save: 'Save',
 			cancel: 'Cancel',
+			workSuffix: 'Work',
+			restSuffix: 'Rest',
 			workouts: [
-				{ id: 'sparring',      name: 'Sparring Session',   description: '10 Rounds · 3:00 Work · 1:00 Rest',   details: 'Simulation of real fight situations to improve timing and distance control.', icon: Sword,  color: '#e74c3c' },
-				{ id: 'hiit',          name: 'HIIT Workout',       description: '8 Rounds · 0:45 Work · 0:15 Rest',    details: 'High-intensity interval training for maximum fat burning and endurance.',     icon: Zap,    color: '#f59e0b' },
-				{ id: 'shadowboxing',  name: 'Shadow Boxing',      description: '3 Rounds · 2:00 Work · 0:30 Rest',    details: 'Focus on technique, footwork, and opponent visualization.',                  icon: User,   color: '#3b82f6' },
-				{ id: 'bag',           name: 'Heavy Bag Training', description: '6 Rounds · 3:00 Work · 1:00 Rest',    details: 'Power development and punch technique on the heavy bag.',                   icon: Target, color: '#2ecc71' }
+				{ id: 'sparring',      name: 'Sparring Session',   details: 'Simulation of real fight situations to improve timing and distance control.', icon: Sword,  color: '#e74c3c' },
+				{ id: 'hiit',          name: 'HIIT Workout',       details: 'High-intensity interval training for maximum fat burning and endurance.',     icon: Zap,    color: '#f59e0b' },
+				{ id: 'shadowboxing',  name: 'Shadow Boxing',      details: 'Focus on technique, footwork, and opponent visualization.',                  icon: User,   color: '#3b82f6' },
+				{ id: 'bag',           name: 'Heavy Bag Training', details: 'Power development and punch technique on the heavy bag.',                   icon: Target, color: '#2ecc71' }
 			]
 		}
 	};
 
 	let currentT = $derived(t[$settings.language]);
 
-	// ── Custom workout form ──────────────────────────────────────────
-	let showForm    = $state(false);
-	let newName     = $state('');
-	let newRounds   = $state(5);
-	let newWork     = $state(120);
-	let newRest     = $state(30);
-	let newColor    = $state(PRESET_COLORS[0]);
-
 	function formatTime(s) {
 		return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 	}
+
+	// Returns the effective config for a preset (saved override or original default)
+	function getPresetCfg(id) {
+		return $settings.presetDefaults?.[id] ?? PRESET_DEFAULTS[id];
+	}
+
+	function presetDescription(id) {
+		const cfg = getPresetCfg(id);
+		const lang = $settings.language;
+		return lang === 'de'
+			? `${cfg.rounds} Runden · ${formatTime(cfg.work)} Arbeit · ${formatTime(cfg.rest)} Pause`
+			: `${cfg.rounds} Rounds · ${formatTime(cfg.work)} Work · ${formatTime(cfg.rest)} Rest`;
+	}
+
+	function hasCustomDefaults(id) {
+		return !!$settings.presetDefaults?.[id];
+	}
+
+	// ── Preset edit ──────────────────────────────────────────────────
+	let editingId  = $state(null);
+	let editRounds = $state(0);
+	let editWork   = $state(0);
+	let editRest   = $state(0);
+
+	function openEdit(e, id) {
+		e.stopPropagation();
+		if (editingId === id) { editingId = null; return; }
+		const cfg = getPresetCfg(id);
+		editRounds = cfg.rounds;
+		editWork   = cfg.work;
+		editRest   = cfg.rest;
+		editingId  = id;
+	}
+
+	function closeEdit() { editingId = null; }
+
+	function saveEdit() {
+		settings.update(s => ({
+			...s,
+			presetDefaults: { ...(s.presetDefaults ?? {}), [editingId]: { rounds: editRounds, work: editWork, rest: editRest } }
+		}));
+		closeEdit();
+	}
+
+	function resetEdit(id) {
+		settings.update(s => {
+			const pd = { ...(s.presetDefaults ?? {}) };
+			delete pd[id];
+			return { ...s, presetDefaults: pd };
+		});
+		closeEdit();
+	}
+
+	// ── Custom workout form ──────────────────────────────────────────
+	let showForm  = $state(false);
+	let newName   = $state('');
+	let newRounds = $state(5);
+	let newWork   = $state(120);
+	let newRest   = $state(30);
+	let newColor  = $state(PRESET_COLORS[0]);
 
 	function openForm() {
 		newName = ''; newRounds = 5; newWork = 120; newRest = 30; newColor = PRESET_COLORS[0];
@@ -89,9 +158,7 @@
 		settings.update(s => ({ ...s, customWorkouts: (s.customWorkouts || []).filter(w => w.id !== id) }));
 	}
 
-	function selectPreset(id) {
-		goto(`/setup/${id}`);
-	}
+	function selectPreset(id) { goto(`/setup/${id}`); }
 
 	function selectCustom(workout) {
 		sessionStorage.setItem('customWorkoutBase', JSON.stringify(workout));
@@ -108,24 +175,80 @@
 	<div class="workout-menu">
 		<!-- Preset workouts -->
 		{#each currentT.workouts as workout, i (workout.id)}
-			<button
+			<div
 				class="menu-card"
-				onclick={() => selectPreset(workout.id)}
+				class:editing={editingId === workout.id}
 				in:fly={{ y: 40, duration: 450, delay: i * 80 }}
 			>
 				<div class="card-glow" style="--card-color:{workout.color}"></div>
-				<div class="card-content">
+				<button class="card-content" onclick={() => selectPreset(workout.id)}>
 					<div class="icon-section" style="background:{workout.color}18; color:{workout.color}">
 						<workout.icon size={28} strokeWidth={2.5} />
 					</div>
 					<div class="info-section">
 						<h3>{workout.name}</h3>
-						<span class="preset-tag">{workout.description}</span>
+						<span class="preset-tag" class:tag-custom={hasCustomDefaults(workout.id)}>
+							{presetDescription(workout.id)}
+						</span>
 						<p>{workout.details}</p>
 					</div>
 					<div class="action-section"><ChevronRight size={22} /></div>
+				</button>
+				<button
+					class="btn-edit-preset"
+					class:active={editingId === workout.id}
+					onclick={(e) => openEdit(e, workout.id)}
+					title={currentT.editTitle}
+				>
+					<Pencil size={13} />
+				</button>
+			</div>
+
+			{#if editingId === workout.id}
+				<div class="edit-panel" in:fly={{ y: -8, duration: 220 }} out:fly={{ y: -8, duration: 180 }}>
+					<div class="form-header">
+						<h3>{currentT.editTitle} — {workout.name}</h3>
+						<button class="btn-close" onclick={closeEdit}><X size={18} /></button>
+					</div>
+
+					<div class="form-row">
+						<div class="form-field">
+							<label>{currentT.roundsLabel}</label>
+							<div class="mini-stepper">
+								<button onclick={() => editRounds = Math.max(1, editRounds - 1)}>−</button>
+								<span>{editRounds}</span>
+								<button onclick={() => editRounds = Math.min(20, editRounds + 1)}>+</button>
+							</div>
+						</div>
+						<div class="form-field">
+							<label>{currentT.workLabel}</label>
+							<div class="mini-stepper">
+								<button onclick={() => editWork = Math.max(15, editWork - 15)}>−</button>
+								<span>{formatTime(editWork)}</span>
+								<button onclick={() => editWork = Math.min(600, editWork + 15)}>+</button>
+							</div>
+						</div>
+						<div class="form-field">
+							<label>{currentT.restLabel}</label>
+							<div class="mini-stepper">
+								<button onclick={() => editRest = Math.max(5, editRest - 5)}>−</button>
+								<span>{formatTime(editRest)}</span>
+								<button onclick={() => editRest = Math.min(300, editRest + 5)}>+</button>
+							</div>
+						</div>
+					</div>
+
+					<div class="form-actions">
+						<button class="btn-save" onclick={saveEdit}>{currentT.saveDefaults}</button>
+						{#if hasCustomDefaults(workout.id)}
+							<button class="btn-reset" onclick={() => resetEdit(workout.id)} title={currentT.resetDefaults}>
+								<RotateCcw size={15} />
+							</button>
+						{/if}
+						<button class="btn-cancel" onclick={closeEdit}>{currentT.cancel}</button>
+					</div>
 				</div>
-			</button>
+			{/if}
 		{/each}
 
 		<!-- Custom workouts -->
@@ -275,7 +398,7 @@
 		color: white;
 	}
 
-	.menu-card:not(.custom-card) { padding: 0; }
+	.menu-card:not(.custom-card) { padding: 0; position: relative; }
 
 	.menu-card:hover { transform: scale(1.01) translateX(6px); background: #212845; border-color: rgba(255,255,255,0.09); }
 	.menu-card:hover .card-glow { width: 6px; opacity: 1; }
@@ -359,6 +482,67 @@
 		flex-shrink: 0;
 	}
 	.menu-card:hover .action-section { transform: translateX(4px); color: white; }
+
+	/* Pencil edit button (preset cards) */
+	.btn-edit-preset {
+		position: absolute;
+		top: 10px;
+		right: 10px;
+		width: 28px;
+		height: 28px;
+		background: rgba(255,255,255,0.06);
+		border: 1px solid rgba(255,255,255,0.1);
+		border-radius: 8px;
+		color: rgba(255,255,255,0.3);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		transition: all 0.2s;
+		z-index: 2;
+		flex-shrink: 0;
+	}
+	.btn-edit-preset:hover,
+	.btn-edit-preset.active {
+		background: rgba(46,204,113,0.15);
+		border-color: rgba(46,204,113,0.4);
+		color: #2ecc71;
+	}
+
+	/* Highlighted description when preset has saved custom defaults */
+	.tag-custom {
+		background: rgba(46,204,113,0.12) !important;
+		color: rgba(46,204,113,0.85) !important;
+	}
+
+	/* Edit panel */
+	.edit-panel {
+		background: #131830;
+		border: 1px solid rgba(46,204,113,0.2);
+		border-top: none;
+		border-radius: 0 0 20px 20px;
+		padding: 22px 24px 24px;
+		margin-top: -16px;
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
+
+	.btn-reset {
+		background: rgba(255,255,255,0.05);
+		border: 1px solid rgba(255,255,255,0.1);
+		color: rgba(255,255,255,0.4);
+		width: 44px;
+		height: 44px;
+		border-radius: 12px;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.2s;
+		flex-shrink: 0;
+	}
+	.btn-reset:hover { color: #e74c3c; border-color: rgba(231,76,60,0.3); background: rgba(231,76,60,0.08); }
 
 	/* Delete button */
 	.btn-delete {
