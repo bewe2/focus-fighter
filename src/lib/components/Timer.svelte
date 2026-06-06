@@ -87,6 +87,36 @@
 		}
 	});
 
+	// ── Audio ────────────────────────────────────────────────────────
+	let audioCtx = null;
+
+	function getAudioCtx() {
+		if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+		if (audioCtx.state === 'suspended') audioCtx.resume();
+		return audioCtx;
+	}
+
+	function playBeep(count = 1) {
+		try {
+			const ctx = getAudioCtx();
+			const beepDuration = 0.12;
+			const gap = 0.09;
+			for (let i = 0; i < count; i++) {
+				const osc  = ctx.createOscillator();
+				const gain = ctx.createGain();
+				osc.connect(gain);
+				gain.connect(ctx.destination);
+				osc.type = 'sine';
+				osc.frequency.value = 880;
+				const t0 = ctx.currentTime + i * (beepDuration + gap);
+				gain.gain.setValueAtTime(0.4, t0);
+				gain.gain.exponentialRampToValueAtTime(0.001, t0 + beepDuration);
+				osc.start(t0);
+				osc.stop(t0 + beepDuration);
+			}
+		} catch {}
+	}
+
 	// ── Timer logic ──────────────────────────────────────────────────
 	function startTimer() {
 		isRunning = true;
@@ -94,11 +124,13 @@
 		if (state === 'paused') state = prevState;
 		intervalId = setInterval(() => {
 			timeLeft -= 1;
+			if ((state === 'work' || state === 'rest') && timeLeft === 10) playBeep(1);
 			if (timeLeft <= 0) handleStateTransition();
 		}, 1000);
 	}
 
 	function handleStateTransition() {
+		if (state === 'work' || state === 'rest') playBeep(2);
 		if (state === 'prep') {
 			state = 'work'; timeLeft = workDuration;
 		} else if (state === 'work') {
